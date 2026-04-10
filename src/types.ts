@@ -20,7 +20,7 @@ export interface Piece {
 
 export type Grid = (Piece | null)[][];
 
-export type GameState = 'intro' | 'lore' | 'playing' | 'gameover' | 'levelwin' | 'relics' | 'relicunlock' | 'achievements';
+export type GameState = 'intro' | 'lore' | 'playing' | 'gameover' | 'levelwin' | 'relics' | 'relicunlock' | 'achievements' | 'final_lore' | 'speedrun_stats';
 
 export interface Position {
   row: number;
@@ -53,13 +53,28 @@ export interface PowerUp {
   icon: any;
 }
 
+export interface SpeedRunRecord {
+  levelTimes: number[];
+  totalTime: number;
+  date: string;
+  playerName?: string;
+  playerTitle?: string;
+}
+
 export interface PlayerStats {
   level: number;
   bloodCoins: number;
   unlockedRelics: string[]; // Array of relic IDs
   unlockedAchievements: string[]; // Array of achievement IDs
   selectedTitleId?: string;
+  skipLore?: boolean;
   language: Language;
+  speedRunUnlocked?: boolean;
+  earnedRelics?: string[];
+  bestSpeedRun?: SpeedRunRecord;
+  speedRunRecords?: SpeedRunRecord[];
+  musicEnabled?: boolean;
+  sfxEnabled?: boolean;
 }
 
 export interface Achievement {
@@ -68,6 +83,14 @@ export interface Achievement {
   description: LocalizedString;
   title: LocalizedString;
   icon: string;
+}
+
+export interface ExportOptions {
+  ritual: boolean;
+  titles: boolean;
+  relics: boolean;
+  achievements: boolean;
+  speedruns: boolean;
 }
 
 export interface Relic {

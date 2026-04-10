@@ -1,5 +1,5 @@
 import { Droplet, Skull, Ghost, Diamond, Flame, Zap, Bomb, MoveRight, PlusCircle, Shuffle, Hammer, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Users } from 'lucide-react';
-import { PieceType, PowerUp, Level, Relic, Achievement } from './types';
+import { PieceType, PowerUp, Level, Relic, Achievement, LocalizedString } from './types';
 
 export const GRID_SIZE = 8;
 export const PIECE_TYPES: PieceType[] = ['blood', 'skull', 'bat', 'gem', 'candle', 'fang'];
@@ -253,6 +253,27 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: { en: 'Reach 150,000 points in a single Ritual', pt: 'Alcance 150.000 pontos em um único Ritual' },
     title: { en: 'The Immortal', pt: 'O Imortal' },
     icon: 'Zap'
+  },
+  {
+    id: 'score_200k',
+    name: { en: 'Crimson Singularity', pt: 'Singularidade Carmesim' },
+    description: { en: 'Reach 200,000 points in a single Ritual', pt: 'Alcance 200.000 pontos em um único Ritual' },
+    title: { en: 'The Blood Avatar', pt: 'O Avatar de Sangue' },
+    icon: 'Flame'
+  },
+  {
+    id: 'score_300k',
+    name: { en: 'Sanguine Zenith', pt: 'Zênite Sanguíneo' },
+    description: { en: 'Reach 300,000 points in a single Ritual', pt: 'Alcance 300.000 pontos em um único Ritual' },
+    title: { en: 'The Eternal Eclipse', pt: 'O Eclipse Eterno' },
+    icon: 'Star'
+  },
+  {
+    id: 'game_complete',
+    name: { en: 'Resurrection of Dracula', pt: 'Ressurreição de Drácula' },
+    description: { en: 'Complete level 100 and revive the Dark Lord', pt: 'Complete o nível 100 e reviva o Lorde das Trevas' },
+    title: { en: 'Lord of Shadows', pt: 'Senhor das Sombras' },
+    icon: 'Crown'
   }
 ];
 
@@ -317,7 +338,7 @@ export const POWER_UPS: PowerUp[] = [
 
 export const LEVELS: Level[] = Array.from({ length: 100 }, (_, i) => ({
   id: i + 1,
-  moves: Math.max(10, 30 - Math.floor(i / 5)),
+  moves: 25,
   rewardXP: 0,
   rewardCoins: 500 + i * 100,
   goals: [
@@ -326,6 +347,25 @@ export const LEVELS: Level[] = Array.from({ length: 100 }, (_, i) => ({
     ...(i > 5 ? [{ type: PIECE_TYPES[(i + 2) % PIECE_TYPES.length], target: 10 + Math.floor(i / 3), current: 0 }] : []),
   ],
 }));
+
+export const SPEEDRUN_LEVELS: Level[] = Array.from({ length: 10 }, (_, i) => ({
+  id: 1000 + i + 1,
+  moves: 30,
+  rewardXP: 0,
+  rewardCoins: 0,
+  goals: [
+    { type: 'score', target: 10000 + i * 5000, current: 0 },
+    { type: PIECE_TYPES[i % PIECE_TYPES.length], target: 20, current: 0 },
+  ],
+}));
+
+export const FINAL_LORE = {
+  title: { en: "The Resurrection", pt: "A Ressurreição" },
+  content: {
+    en: "The final ritual is complete. The 10 relics pulse with a dark, rhythmic heartbeat. Shadows coalesce in the center of the altar, forming the silhouette of the one who was lost.\n\nDracula has returned. The world shall tremble once more under the weight of his eternal night.",
+    pt: "O ritual final está completo. As 10 relíquias pulsam com um batimento cardíaco sombrio e rítmico. As sombras se aglutinam no centro do altar, formando a silhueta daquele que estava perdido.\n\nDrácula retornou. O mundo tremerá mais uma vez sob o peso de sua noite eterna."
+  }
+};
 
 export const SCORE_BASE = 400;
 export const SCORE_MATCH_4_MULT = 2.5;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight } from 'lucide-react';
-import { LevelGoal, PlayerStats, PowerUpType, Relic, LocalizedString, Language, Achievement } from '../types';
-import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS } from '../constants';
+import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX } from 'lucide-react';
+import { LevelGoal, PlayerStats, PowerUpType, Relic, LocalizedString, Language, Achievement, SpeedRunRecord, ExportOptions } from '../types';
+import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE } from '../constants';
 import { audioService } from '../services/audioService';
 
 const RELIC_ICONS: Record<string, any> = {
@@ -10,17 +10,23 @@ const RELIC_ICONS: Record<string, any> = {
 };
 
 const ACHIEVEMENT_ICONS: Record<string, any> = {
-  CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Medal
+  CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Medal, Zap, Flame, Skull, Trophy, Star
 };
 
 interface HUDProps {
   score: number;
+  currentMatchScore: number;
   moves: number;
   goals: LevelGoal[];
   playerStats: PlayerStats;
   onOpenShop: () => void;
   onBackToMenu: () => void;
   onSelectTitle: (titleId: string) => void;
+  isSpeedRun?: boolean;
+  speedRunLevelIndex?: number;
+  currentLevelTime?: number;
+  totalSpeedRunTime?: number;
+  isHardcore?: boolean;
 }
 
 const t = (str: LocalizedString | string, lang: Language) => {
@@ -28,7 +34,20 @@ const t = (str: LocalizedString | string, lang: Language) => {
   return str[lang] || str['en'];
 };
 
-export const HUD = ({ score, moves, goals, playerStats, onOpenShop, onBackToMenu, onSelectTitle }: HUDProps) => {
+export const HUD = ({ 
+  score, 
+  currentMatchScore, 
+  moves, 
+  goals, 
+  playerStats, 
+  onOpenShop, 
+  onBackToMenu, 
+  onSelectTitle,
+  isSpeedRun,
+  speedRunLevelIndex,
+  currentLevelTime,
+  totalSpeedRunTime
+}: HUDProps) => {
   const lang = playerStats.language;
   const [isTitleSelectorOpen, setIsTitleSelectorOpen] = useState(false);
 
@@ -36,7 +55,29 @@ export const HUD = ({ score, moves, goals, playerStats, onOpenShop, onBackToMenu
   const currentTitle = unlockedTitles.find(a => a.id === playerStats.selectedTitleId) || unlockedTitles[0];
 
   return (
-    <div className="flex flex-col w-full max-w-2xl gap-4 mb-6">
+    <div className="flex flex-col w-full max-w-full gap-4 mb-2 relative p-4 bg-zinc-950/40 rounded-[32px] border border-red-900/10 backdrop-blur-sm">
+      {/* Decorative Top Border */}
+      <div className="absolute -top-4 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-900/50 to-transparent" />
+      
+      {/* Speedrun Timers - Moved to top left to avoid title conflict */}
+      {isSpeedRun && currentLevelTime !== undefined && totalSpeedRunTime !== undefined && (
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="absolute -top-12 left-0 flex items-center gap-4 bg-yellow-900/40 px-4 py-2 rounded-2xl border border-yellow-600/30 backdrop-blur-md z-50 shadow-[0_0_20px_rgba(202,138,4,0.2)]"
+        >
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] uppercase tracking-widest text-yellow-500/70 font-bold">{lang === 'pt' ? 'Tempo Fase' : 'Stage Time'}</span>
+            <span className="text-sm font-mono font-black text-yellow-500">{currentLevelTime.toFixed(1)}s</span>
+          </div>
+          <div className="w-[1px] h-8 bg-yellow-600/30" />
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] uppercase tracking-widest text-yellow-500/70 font-bold">{lang === 'pt' ? 'Tempo Total' : 'Total Time'}</span>
+            <span className="text-sm font-mono font-black text-yellow-500">{totalSpeedRunTime.toFixed(1)}s</span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Top Bar with Back Button and Stats */}
       <div className="flex justify-between items-center gap-4">
         <button 
@@ -44,27 +85,31 @@ export const HUD = ({ score, moves, goals, playerStats, onOpenShop, onBackToMenu
             audioService.playSound('click');
             onBackToMenu();
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-red-900/40 rounded-full border border-red-900/20 text-red-500 text-xs uppercase tracking-widest transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-[var(--color-secondary)]/40 rounded-full border border-[var(--color-secondary)]/20 text-[var(--color-primary)] text-xs uppercase tracking-widest transition-all"
         >
           <ArrowLeft size={14} />
           Menu
         </button>
 
-        <div className="flex-1 flex justify-between items-center px-6 py-2 bg-black/40 rounded-full border border-red-900/20 backdrop-blur-sm relative z-20">
+        <div className="flex-1 flex justify-between items-center px-4 py-1 relative z-20">
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <Trophy className="text-red-600" size={16} />
-                <span className="text-sm font-bold text-white uppercase tracking-widest">Ritual {playerStats.level}</span>
+                <Trophy className="text-[var(--color-primary)]" size={16} />
+                <span className="text-sm font-bold uppercase tracking-widest text-white">
+                  {isSpeedRun ? `${lang === 'pt' ? 'Fase' : 'Stage'} ${(speedRunLevelIndex || 0) + 1}` : `Ritual ${playerStats.level}`}
+                </span>
               </div>
               {/* Relic Progress Bar */}
-              <div className="mt-1 w-full h-1 bg-red-950 rounded-full overflow-hidden border border-red-900/20">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${((playerStats.level - 1) % 10) * 10}%` }}
-                  className="h-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
-                />
-              </div>
+              {!isSpeedRun && (
+                <div className="mt-1 w-full h-1 bg-black/60 rounded-full overflow-hidden border border-[var(--color-secondary)]/20">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((playerStats.level - 1) % 10) * 10}%` }}
+                    className="h-full bg-[var(--color-primary)] shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -80,7 +125,7 @@ export const HUD = ({ score, moves, goals, playerStats, onOpenShop, onBackToMenu
                 }}
                 className={`flex flex-col items-center group ${unlockedTitles.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                <span className="text-[8px] uppercase tracking-[0.3em] text-red-500/50 font-bold">
+                <span className="text-[8px] uppercase tracking-[0.3em] text-[var(--color-primary)]/50 font-bold">
                   {lang === 'pt' ? 'Título' : 'Title'}
                 </span>
                 <div className="flex items-center gap-1">
@@ -141,19 +186,33 @@ export const HUD = ({ score, moves, goals, playerStats, onOpenShop, onBackToMenu
       </div>
 
       {/* Main Stats */}
-      <div className="flex justify-between items-center px-6 py-4 bg-black/80 rounded-2xl border-2 border-red-900/30 backdrop-blur-xl">
+      <div className="flex justify-between items-center px-4 py-2 relative">
         <div className="flex flex-col items-start">
           <span className="text-[10px] uppercase tracking-[0.2em] text-red-500/70 font-semibold mb-1">
             {lang === 'pt' ? 'Essência de Sangue' : 'Blood Essence'}
           </span>
           <div className="flex items-center gap-3">
             <FlaskConical className="text-red-500 animate-pulse" size={20} />
-            <span className="text-2xl font-bold text-white tabular-nums">{score.toLocaleString()}</span>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold text-white tabular-nums drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">{score.toLocaleString()}</span>
+              <AnimatePresence>
+                {currentMatchScore > 0 && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 2, y: -50, color: '#ff0000' }}
+                    className="text-sm font-bold text-red-500 tabular-nums absolute -bottom-5"
+                  >
+                    +{currentMatchScore.toLocaleString()}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
         {/* Goals Display */}
-        <div className="flex gap-4 items-center bg-red-950/20 px-4 py-2 rounded-xl border border-red-900/20">
+        <div className="flex gap-4 items-center px-4 py-2">
           <Target size={14} className="text-red-500/50" />
           {goals.map((goal, idx) => {
             const Config = goal.type === 'score' ? { icon: Star, color: '#eab308' } : PIECE_CONFIG[goal.type as keyof typeof PIECE_CONFIG];
@@ -207,7 +266,172 @@ interface ShopProps {
   onBuy: (type: PowerUpType, cost: number) => boolean;
   getPowerUpCost: (baseCost: number) => number;
   purchases: Record<string, number>;
+  isHardcore?: boolean;
 }
+
+export const FinalLoreScreen = ({ onStart, language }: ScreenProps) => {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto"
+    >
+      <div className="max-w-2xl w-full flex flex-col items-center text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 2 }}
+          className="mb-8 relative"
+        >
+          <div className="absolute inset-0 bg-red-600 rounded-full blur-[80px] opacity-20 animate-pulse" />
+          <Crown size={120} className="text-red-600 relative z-10 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]" />
+        </motion.div>
+
+        <motion.h2
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-5xl font-black text-red-600 uppercase tracking-widest mb-8 metallic-title"
+        >
+          {t(FINAL_LORE.title, language)}
+        </motion.h2>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-zinc-300 text-lg leading-relaxed mb-12 italic font-serif"
+        >
+          {t(FINAL_LORE.content, language).split('\n\n').map((para, i) => (
+            <p key={i} className="mb-4">{para}</p>
+          ))}
+        </motion.div>
+
+        <GothicButton onClick={onStart}>
+          {language === 'pt' ? 'Reivindicar Legado' : 'Claim Legacy'}
+        </GothicButton>
+      </div>
+    </motion.div>
+  );
+};
+
+export const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  return `${mins}:${secs.toString().padStart(2, '0')}:${ms.toString().padStart(3, '0')}`;
+};
+
+export const SpeedRunPanel = ({ levelTimes, currentLevelTime, speedRunLevelIndex, language }: { levelTimes: number[], currentLevelTime: number, speedRunLevelIndex: number, language: Language }) => {
+  return (
+    <div className="flex flex-col w-64 p-4 relative overflow-hidden">
+      <h3 className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/50 font-bold mb-4 text-center">
+        {language === 'pt' ? 'Tempos do Ritual' : 'Ritual Times'}
+      </h3>
+      
+      <div className="space-y-2 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+        {Array.from({ length: 10 }).map((_, i) => {
+          const time = i < levelTimes.length ? levelTimes[i] : (i === speedRunLevelIndex ? currentLevelTime : null);
+          return (
+            <div key={i} className={`flex justify-between items-center p-2 rounded-xl border ${i === speedRunLevelIndex ? 'bg-yellow-900/20 border-yellow-600/40' : 'bg-black/20 border-yellow-900/10'}`}>
+              <span className="text-[9px] uppercase tracking-widest text-yellow-500/40">Ritual {i + 1}</span>
+              <span className={`text-xs font-mono font-bold ${i === speedRunLevelIndex ? 'text-yellow-400 animate-pulse' : (time !== null ? 'text-yellow-500/80' : 'text-yellow-900/30')}`}>
+                {time !== null ? formatTime(time) : '--:--:---'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export const SpeedRunStats = ({ lastSpeedRun, speedRunRecords = [], language, onBack }: { lastSpeedRun?: SpeedRunRecord | null, speedRunRecords?: SpeedRunRecord[], language: Language, onBack: () => void }) => {
+  const [view, setView] = useState<'last' | 'top'>(lastSpeedRun ? 'last' : 'top');
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+    >
+      <div className="max-w-md w-full bg-zinc-950 border-2 border-yellow-600/30 rounded-[40px] p-6 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-600/50 to-transparent" />
+        
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-black text-yellow-500 uppercase tracking-widest font-cinzel">
+            {language === 'pt' ? 'Speed Run' : 'Speed Run'}
+          </h2>
+          <button onClick={onBack} className="p-2 hover:bg-yellow-900/20 rounded-full text-yellow-500/50 transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <button 
+            onClick={() => setView('last')}
+            className={`flex-1 py-2 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all border ${view === 'last' ? 'bg-yellow-600/20 border-yellow-600 text-yellow-500' : 'bg-black/40 border-yellow-900/30 text-yellow-900'}`}
+          >
+            {language === 'pt' ? 'Último Ritual' : 'Last Ritual'}
+          </button>
+          <button 
+            onClick={() => setView('top')}
+            className={`flex-1 py-2 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all border ${view === 'top' ? 'bg-yellow-600/20 border-yellow-600 text-yellow-500' : 'bg-black/40 border-yellow-900/30 text-yellow-900'}`}
+          >
+            {language === 'pt' ? 'Recordes (Top 10)' : 'Records (Top 10)'}
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {view === 'last' && lastSpeedRun ? (
+            <div className="space-y-4">
+              <div className="text-center mb-4">
+                <p className="text-yellow-500/70 text-sm uppercase tracking-widest mb-1">{language === 'pt' ? 'Parabéns, seu tempo foi:' : 'Congratulations, your time was:'}</p>
+                <p className="text-4xl font-mono font-black text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]">{formatTime(lastSpeedRun.totalTime)}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {lastSpeedRun.levelTimes.map((time, i) => (
+                  <div key={i} className="flex justify-between items-center p-3 bg-black/40 rounded-xl border border-yellow-900/20">
+                    <span className="text-[10px] uppercase tracking-widest text-yellow-500/50">Ritual {i + 1}</span>
+                    <span className="text-xs font-mono font-bold text-yellow-400">{formatTime(time)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {speedRunRecords.length > 0 ? speedRunRecords.map((rec, i) => (
+                <div key={i} className="flex justify-between items-center p-4 bg-yellow-900/5 rounded-2xl border border-yellow-600/10 hover:border-yellow-600/30 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xl font-black text-yellow-600/40">#{i + 1}</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-yellow-500 uppercase tracking-widest">
+                          {rec.playerTitle ? `${rec.playerTitle} ` : ''}{rec.playerName || (language === 'pt' ? 'Anônimo' : 'Anonymous')}
+                        </span>
+                      </div>
+                      <span className="text-lg font-mono font-black text-yellow-500">{formatTime(rec.totalTime)}</span>
+                      <span className="text-[8px] uppercase tracking-widest text-yellow-500/30">{new Date(rec.date).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <Trophy size={20} className={i === 0 ? 'text-yellow-500' : 'text-yellow-900/40'} />
+                </div>
+              )) : (
+                <div className="text-center py-12 text-yellow-900/40 uppercase tracking-widest text-xs">
+                  {language === 'pt' ? 'Nenhum recorde ainda' : 'No records yet'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <GothicButton onClick={onBack} className="border-yellow-600/50 text-yellow-500 hover:border-yellow-400">
+          {language === 'pt' ? 'Voltar' : 'Back'}
+        </GothicButton>
+      </div>
+    </motion.div>
+  );
+};
 
 export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpCost, purchases }: ShopProps) => {
   return (
@@ -223,12 +447,12 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
-            className="w-full max-w-md bg-zinc-900 border-2 border-red-900 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(153,27,27,0.3)]"
+            className="w-full max-w-md bg-zinc-900 border-2 border-[var(--color-secondary)] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(153,27,27,0.3)]"
           >
-            <div className="p-6 border-b border-red-900/30 flex justify-between items-center bg-red-950/20">
+            <div className="p-4 border-b border-[var(--color-secondary)]/30 flex justify-between items-center bg-[var(--color-secondary)]/20">
               <div className="flex items-center gap-3">
-                <ShoppingCart className="text-red-500" />
-                <h2 className="text-xl font-bold text-white uppercase tracking-widest">
+                <ShoppingCart className="text-[var(--color-primary)]" />
+                <h2 className="text-xl font-bold text-white uppercase tracking-widest font-cinzel">
                   {language === 'pt' ? 'Mercado do Coven' : 'Coven Market'}
                 </h2>
               </div>
@@ -237,26 +461,27 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
               </button>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
               {POWER_UPS.map((pu) => {
                 const discountedCost = getPowerUpCost(pu.cost);
                 const purchaseCount = purchases[pu.type] || 0;
-                const isLimitReached = purchaseCount >= 2;
+                const limit = 2;
+                const isLimitReached = purchaseCount >= limit;
 
                 return (
                   <div 
                     key={pu.type}
-                    className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-red-900/20 hover:border-red-500/30 transition-all group"
+                    className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-[var(--color-secondary)]/20 hover:border-[var(--color-primary)]/30 transition-all group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-red-900/20 rounded-xl text-red-500 group-hover:scale-110 transition-transform">
+                      <div className="p-3 bg-[var(--color-primary)]/20 rounded-xl text-[var(--color-primary)] group-hover:scale-110 transition-transform">
                         <pu.icon size={24} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-white">{t(pu.name, language)}</h3>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isLimitReached ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-zinc-700 text-zinc-500'}`}>
-                            {purchaseCount}/2
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isLimitReached ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-zinc-700 text-zinc-500'}`}>
+                            {purchaseCount}/{limit}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500">{t(pu.description, language)}</p>
@@ -273,7 +498,7 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
                       className={`
                         flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
                         ${(bloodCoins >= discountedCost && !isLimitReached)
-                          ? 'bg-red-900 text-white hover:bg-red-700 shadow-lg shadow-red-900/20' 
+                          ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-accent)] shadow-lg shadow-[var(--color-primary)]/20' 
                           : 'bg-zinc-800 text-gray-600 cursor-not-allowed'}
                       `}
                     >
@@ -290,7 +515,7 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
               })}
             </div>
 
-            <div className="p-6 bg-black/40 border-t border-red-900/30 flex justify-between items-center">
+            <div className="p-4 bg-black/40 border-t border-[var(--color-secondary)]/30 flex justify-between items-center">
               <span className="text-xs text-gray-500 uppercase tracking-widest">
                 {language === 'pt' ? 'Sua Riqueza' : 'Your Wealth'}
               </span>
@@ -311,13 +536,20 @@ interface ScreenProps {
   onOpenRelics?: () => void;
   onOpenAchievements?: () => void;
   onOpenOptions?: () => void;
-  onOpenBloodCodes?: () => void;
   score?: number;
   level?: number;
   xp?: number;
   bags?: number;
   relic?: Relic | null;
   language: Language;
+  speedRunUnlocked?: boolean;
+  bestSpeedRun?: SpeedRunRecord;
+  onStartSpeedRun?: () => void;
+  onOpenSpeedRunStats?: () => void;
+  speedRunRecords?: SpeedRunRecord[];
+  hardcoreUnlocked?: boolean;
+  onStartHardcore?: () => void;
+  isHardcore?: boolean;
 }
 
 const BloodDrop = ({ delay = 0, left = "50%" }: { delay?: number; left?: string }) => (
@@ -341,13 +573,13 @@ const BloodDrop = ({ delay = 0, left = "50%" }: { delay?: number; left?: string 
 
 const GothicButton = ({ onClick, children, className = "", icon: Icon }: { onClick: () => void, children: React.ReactNode, className?: string, icon?: any }) => (
   <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.97 }}
     onClick={() => {
       audioService.playSound('click');
       onClick();
     }}
-    className={`gothic-button w-full px-12 py-4 rounded-lg flex items-center justify-center gap-4 group ${className}`}
+    className={`gothic-button w-full px-12 py-4 rounded-lg flex items-center justify-center gap-4 group font-cinzel text-[#ff3333] tracking-widest uppercase font-bold ${className}`}
   >
     <div className="gothic-button-ornament tl" />
     <div className="gothic-button-ornament tr" />
@@ -361,54 +593,188 @@ const GothicButton = ({ onClick, children, className = "", icon: Icon }: { onCli
   </motion.button>
 );
 
-const BloodBubble = ({ x, y, onComplete }: { x: number, y: number, onComplete: () => void }) => (
-  <motion.div
-    initial={{ scale: 0, opacity: 0, x, y }}
-    animate={{ 
-      scale: [0, 1.2, 1], 
-      opacity: [0, 0.6, 0.4],
-    }}
-    exit={{ 
-      scale: 2, 
-      opacity: 0,
-      filter: "blur(10px)"
-    }}
-    transition={{ duration: 1 }}
-    onAnimationComplete={() => setTimeout(onComplete, 1000)}
-    className="absolute w-12 h-12 -ml-6 -mt-6 rounded-full bg-gradient-to-br from-red-500/40 to-red-900/60 border border-red-400/30 backdrop-blur-[2px] pointer-events-none z-50"
-  >
-    {/* Inner shine */}
-    <div className="absolute top-2 left-2 w-3 h-3 bg-white/20 rounded-full blur-[1px]" />
-    
-    {/* Explosion particles when exiting */}
-    <AnimatePresence>
-      <motion.div 
-        className="absolute inset-0"
-        initial={{ opacity: 0 }}
-        exit={{ opacity: 1 }}
-      >
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute top-1/2 left-1/2 w-1 h-1 bg-red-500 rounded-full"
-            exit={{ 
-              x: (Math.random() - 0.5) * 100,
-              y: (Math.random() - 0.5) * 100,
-              scale: 0,
-              opacity: 0
-            }}
-            transition={{ duration: 0.5 }}
-          />
-        ))}
-      </motion.div>
-    </AnimatePresence>
-  </motion.div>
-);
+const BloodBubble = ({ x, y, onComplete }: { x: number, y: number, onComplete: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 1200);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
-export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenOptions, onOpenBloodCodes, language }: ScreenProps) => {
+  return (
+    <motion.div
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ 
+        scale: [0, 1.2, 1], 
+        opacity: [0, 0.8, 0.6],
+      }}
+      exit={{ 
+        scale: 2, 
+        opacity: 0,
+        filter: "blur(10px)",
+        transition: { duration: 0.3 }
+      }}
+      style={{ 
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: 48,
+        height: 48,
+        marginLeft: -24,
+        marginTop: -24,
+      }}
+      className="rounded-full bg-gradient-to-br from-red-500/60 to-red-900/80 border border-red-400/40 backdrop-blur-[2px] pointer-events-none z-50 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+    >
+      {/* Inner shine */}
+      <div className="absolute top-2 left-2 w-3 h-3 bg-white/30 rounded-full blur-[1px]" />
+      
+      {/* Explosion particles */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"
+          initial={{ x: 0, y: 0, opacity: 0 }}
+          exit={{ 
+            x: (Math.random() - 0.5) * 150,
+            y: (Math.random() - 0.5) * 150,
+            opacity: 0,
+            scale: 0,
+          }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        />
+      ))}
+    </motion.div>
+  );
+};
+
+export const SpeedRunSetupModal = ({ 
+  isOpen, 
+  onClose, 
+  onStart, 
+  language, 
+  playerStats 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onStart: (name: string, title: string) => void, 
+  language: Language,
+  playerStats: PlayerStats
+}) => {
+  const [name, setName] = useState('');
+  const [selectedTitleId, setSelectedTitleId] = useState(playerStats.selectedTitleId || '');
+
+  const unlockedTitles = ACHIEVEMENTS.filter(a => playerStats.unlockedAchievements.includes(a.id));
+  const currentTitle = unlockedTitles.find(a => a.id === selectedTitleId);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            className="w-full max-w-md bg-zinc-950 border-2 border-yellow-600/30 rounded-[40px] p-8 relative overflow-hidden shadow-[0_0_50px_rgba(234,179,8,0.2)]"
+          >
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-600/50 to-transparent" />
+            
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-black text-yellow-500 uppercase tracking-widest font-cinzel">
+                {language === 'pt' ? 'Novo Speed Run' : 'New Speed Run'}
+              </h2>
+              <button onClick={onClose} className="text-yellow-900/40 hover:text-yellow-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/50 font-bold block ml-2">
+                  {language === 'pt' ? 'Seu Nome' : 'Your Name'}
+                </label>
+                <input 
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={language === 'pt' ? 'Digite seu nome...' : 'Enter your name...'}
+                  className="w-full bg-black/40 border border-yellow-900/30 rounded-2xl px-6 py-4 text-yellow-500 placeholder:text-yellow-900/30 focus:outline-none focus:border-yellow-600/50 transition-colors font-mono"
+                  maxLength={20}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/50 font-bold block ml-2">
+                  {language === 'pt' ? 'Escolha seu Título' : 'Choose your Title'}
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                  {unlockedTitles.length > 0 ? unlockedTitles.map(title => (
+                    <button
+                      key={title.id}
+                      onClick={() => setSelectedTitleId(title.id)}
+                      className={`w-full text-left px-6 py-4 rounded-2xl text-xs uppercase tracking-widest transition-all border ${
+                        selectedTitleId === title.id 
+                          ? 'bg-yellow-600/20 border-yellow-600 text-yellow-500 font-black' 
+                          : 'bg-black/20 border-yellow-900/10 text-yellow-900/40 hover:border-yellow-900/30 hover:text-yellow-900/60'
+                      }`}
+                    >
+                      {t(title.title, language)}
+                    </button>
+                  )) : (
+                    <div className="text-center py-4 text-yellow-900/20 text-[10px] uppercase tracking-widest italic">
+                      {language === 'pt' ? 'Nenhum título desbloqueado' : 'No titles unlocked'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <div className="text-center mb-6">
+                  <span className="text-[10px] uppercase tracking-[0.4em] text-yellow-500/30 font-bold block mb-1">
+                    {language === 'pt' ? 'Você será conhecido como:' : 'You will be known as:'}
+                  </span>
+                  <span className="text-lg font-black text-yellow-500 uppercase tracking-widest drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                    {currentTitle ? `${t(currentTitle.title, language)} ` : ''}{name || (language === 'pt' ? 'Anônimo' : 'Anonymous')}
+                  </span>
+                </div>
+
+                <GothicButton 
+                  onClick={() => onStart(name, currentTitle ? t(currentTitle.title, language) : '')}
+                  className="border-yellow-600 text-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]"
+                >
+                  {language === 'pt' ? 'Iniciar Ritual' : 'Start Ritual'}
+                </GothicButton>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export const IntroScreen = ({ 
+  onStart, 
+  onOpenRelics, 
+  onOpenAchievements, 
+  onOpenOptions, 
+  language,
+  speedRunUnlocked,
+  bestSpeedRun,
+  speedRunRecords,
+  onStartSpeedRun,
+  onOpenSpeedRunStats,
+  level
+}: ScreenProps) => {
   const [bubbles, setBubbles] = useState<{ id: number, x: number, y: number }[]>([]);
+  const [showSpeedRunMenu, setShowSpeedRunMenu] = useState(false);
 
   const handleBackgroundClick = (e: React.MouseEvent) => {
+    // Don't spawn bubble if clicking on a button or interactive element
+    if ((e.target as HTMLElement).closest('button')) return;
+    
     if (bubbles.length >= 3) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
@@ -429,7 +795,7 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       onClick={handleBackgroundClick}
-      className="relative flex flex-col items-center justify-center text-center p-8 min-h-screen w-full overflow-hidden cursor-crosshair"
+      className="relative flex flex-col items-center justify-center text-center p-4 min-h-screen w-full overflow-hidden cursor-crosshair"
     >
       <AnimatePresence>
         {bubbles.map(bubble => (
@@ -441,13 +807,6 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
           />
         ))}
       </AnimatePresence>
-      {/* Red Moon Background (Centered) */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.4 }}
-        transition={{ duration: 4, ease: "easeOut" }}
-        className="absolute top-[-50px] w-[400px] h-[400px] bg-gradient-to-b from-red-600 to-red-950 rounded-full blur-[60px] shadow-[0_0_120px_rgba(220,38,38,0.3)] z-0"
-      />
 
       <motion.div
         initial={{ y: -50, opacity: 0 }}
@@ -458,7 +817,7 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
         <div className="relative">
           <h1 
             data-text="Crimson Relics"
-            className="metallic-title text-8xl md:text-9xl font-black tracking-tighter mb-4"
+            className="text-8xl md:text-9xl mb-4 metallic-title tracking-[0.2em]"
           >
             Crimson Relics
           </h1>
@@ -473,13 +832,22 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
 
         <motion.div 
           initial={{ opacity: 0, letterSpacing: "0.1em" }}
-          animate={{ opacity: 1, letterSpacing: "0.5em" }}
+          animate={{ opacity: 1, letterSpacing: "0.3em" }}
           transition={{ duration: 1.5, delay: 0.8 }}
-          className="flex items-center justify-center gap-4 text-red-500 font-bold uppercase text-lg archaic-text"
+          className="flex flex-col items-center justify-center gap-2 text-[#ff4d4d] font-bold uppercase font-cinzel-decorative"
         >
-          <div className="h-[2px] w-16 bg-gradient-to-r from-transparent to-red-900" />
-          <span>{language === 'pt' ? 'O Despertar de Drácula' : "Dracula's Awakening"}</span>
-          <div className="h-[2px] w-16 bg-gradient-to-l from-transparent to-red-900" />
+          <div className="flex items-center gap-6 text-xl tracking-[0.3em]">
+            <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-red-600 to-transparent relative">
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rotate-45 border border-red-600 bg-black" />
+            </div>
+            <span>{language === 'pt' ? 'O Despertar de Drácula' : "Dracula's Awakening"}</span>
+            <div className="h-[1px] w-24 bg-gradient-to-l from-transparent via-red-600 to-transparent relative">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rotate-45 border border-red-600 bg-black" />
+            </div>
+          </div>
+          <span className="text-sm tracking-[0.4em] text-[#ff4d4d]">
+            {language === 'pt' ? `Ritual ${level}` : `Ritual ${level}`}
+          </span>
         </motion.div>
       </motion.div>
 
@@ -487,6 +855,45 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
         <GothicButton onClick={onStart}>
           {language === 'pt' ? 'Iniciar Ritual' : 'Begin Ritual'}
         </GothicButton>
+
+        <AnimatePresence mode="wait">
+          <div className="flex flex-col gap-2">
+            {!showSpeedRunMenu ? (
+              <GothicButton 
+                onClick={() => setShowSpeedRunMenu(true)} 
+                icon={Hourglass} 
+                className="border-yellow-600/50 text-yellow-500 hover:border-yellow-400 shadow-[0_0_15px_rgba(202,138,4,0.3)]"
+              >
+                {language === 'pt' ? 'Modo Speed Run' : 'Speed Run Mode'}
+              </GothicButton>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-2 p-4 bg-yellow-900/10 rounded-2xl border border-yellow-600/20"
+              >
+                <GothicButton 
+                  onClick={onStartSpeedRun || (() => {})} 
+                  className="border-yellow-600/50 text-yellow-500 hover:border-yellow-400 text-sm"
+                >
+                  {language === 'pt' ? 'Novo Speed Run' : 'New Speed Run'}
+                </GothicButton>
+                <GothicButton 
+                  onClick={onOpenSpeedRunStats} 
+                  className="border-yellow-600/30 text-yellow-600 hover:text-yellow-500 text-sm"
+                >
+                  {language === 'pt' ? 'Recordes (Top 10)' : 'Records (Top 10)'}
+                </GothicButton>
+                <button 
+                  onClick={() => setShowSpeedRunMenu(false)}
+                  className="text-[10px] uppercase tracking-widest text-yellow-900 hover:text-yellow-700 transition-colors mt-1"
+                >
+                  {language === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+              </motion.div>
+            )}
+          </div>
+        </AnimatePresence>
 
         <div className="grid grid-cols-2 gap-4">
           <GothicButton onClick={onOpenRelics || (() => {})} icon={Trophy} className="px-6">
@@ -501,18 +908,8 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
         <GothicButton onClick={onOpenAchievements || (() => {})} icon={Medal}>
           {language === 'pt' ? 'Conquistas' : 'Achievements'}
         </GothicButton>
-
-        <GothicButton onClick={onOpenBloodCodes || (() => {})} icon={Skull} className="py-2">
-          <span className="text-sm">
-            {language === 'pt' ? 'Códigos Sangrentos' : 'Blood Codes'}
-          </span>
-        </GothicButton>
       </div>
 
-      {/* Footer Info */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-red-900/40 text-[10px] uppercase tracking-[0.4em] font-bold archaic-text z-10">
-        © 2026 VAMPIRE GAMES | {language === 'pt' ? 'PRESSIONE PARA INICIAR' : 'PRESS TO START'}
-      </div>
       
       {/* Sea of Blood Bottom Section */}
       <div className="absolute bottom-0 left-0 w-full h-48 overflow-hidden pointer-events-none z-0">
@@ -578,7 +975,9 @@ export const IntroScreen = ({ onStart, onOpenRelics, onOpenAchievements, onOpenO
   );
 };
 
-export const LoreScreen = ({ onStart, language }: { onStart: () => void, language: Language }) => {
+export const LoreScreen = ({ onStart, onSkipLore, language }: { onStart: () => void, onSkipLore: (skip: boolean) => void, language: Language }) => {
+  const [skipNext, setSkipNext] = useState(false);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -588,7 +987,7 @@ export const LoreScreen = ({ onStart, language }: { onStart: () => void, languag
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative w-full max-w-2xl bg-[#d4c5a9] p-12 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
+        className="relative w-full max-w-4xl bg-[#d4c5a9] p-8 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden"
         style={{
           backgroundImage: 'url("https://www.transparenttextures.com/patterns/parchment.png")',
           boxShadow: 'inset 0 0 100px rgba(0,0,0,0.3), 0 0 50px rgba(0,0,0,0.8)'
@@ -598,11 +997,11 @@ export const LoreScreen = ({ onStart, language }: { onStart: () => void, languag
         <div className="absolute inset-0 pointer-events-none border-[20px] border-transparent" style={{ boxShadow: 'inset 0 0 60px 20px rgba(60,40,20,0.4)' }} />
         
         <div className="relative z-10 flex flex-col items-center text-center">
-          <h2 className="text-4xl font-serif font-bold text-red-900 mb-8 uppercase tracking-tighter" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.1)' }}>
+          <h2 className="text-4xl font-unifraktur font-bold text-red-900 mb-8 uppercase tracking-widest" style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.1)' }}>
             {t(LORE.title, language)}
           </h2>
           
-          <div className="text-xl font-serif leading-relaxed text-red-950 mb-12 space-y-4 italic">
+          <div className="text-xl font-serif leading-relaxed text-red-950 mb-6 space-y-4 italic">
             {t(LORE.content, language).split('\n\n').map((para, i) => (
               <p key={i} className="relative">
                 {para}
@@ -612,14 +1011,31 @@ export const LoreScreen = ({ onStart, language }: { onStart: () => void, languag
             ))}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05, color: '#ff0000' }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onStart}
-            className="px-10 py-3 bg-red-900 text-[#d4c5a9] font-serif font-bold text-xl rounded border-2 border-red-950 shadow-lg hover:bg-red-800 transition-all uppercase tracking-widest"
-          >
-            {t(LORE.continue, language)}
-          </motion.button>
+          <div className="flex flex-col items-center gap-6">
+            <motion.button
+              whileHover={{ scale: 1.05, color: '#ff0000' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                onSkipLore(skipNext);
+                onStart();
+              }}
+              className="px-10 py-3 bg-red-900 text-[#d4c5a9] font-serif font-bold text-xl rounded border-2 border-red-950 shadow-lg hover:bg-red-800 transition-all uppercase tracking-widest"
+            >
+              {t(LORE.continue, language)}
+            </motion.button>
+
+            <button 
+              onClick={() => setSkipNext(!skipNext)}
+              className="flex items-center gap-2 text-red-900/60 hover:text-red-900 transition-colors group"
+            >
+              <div className={`w-4 h-4 border border-red-900 flex items-center justify-center rounded-sm transition-colors ${skipNext ? 'bg-red-900' : 'bg-transparent'}`}>
+                {skipNext && <X size={12} className="text-[#d4c5a9]" />}
+              </div>
+              <span className="text-xs font-serif uppercase tracking-widest">
+                {language === 'pt' ? 'Pular da próxima vez' : 'Skip next time'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Blood stains */}
@@ -630,14 +1046,30 @@ export const LoreScreen = ({ onStart, language }: { onStart: () => void, languag
   );
 };
 
-export const OptionsModal = ({ isOpen, onClose, currentLanguage, onSetLanguage, onExport, onImport, onReset }: { 
+export const OptionsModal = ({ 
+  isOpen, 
+  onClose, 
+  currentLanguage, 
+  onSetLanguage, 
+  onOpenExport, 
+  onImport, 
+  onReset, 
+  musicEnabled,
+  sfxEnabled,
+  onToggleMusic,
+  onToggleSfx
+}: { 
   isOpen: boolean, 
   onClose: () => void, 
   currentLanguage: Language, 
   onSetLanguage: (lang: Language) => void,
-  onExport: () => string,
+  onOpenExport: () => void,
   onImport: (save: string) => void,
-  onReset: () => void
+  onReset: () => void,
+  musicEnabled: boolean,
+  sfxEnabled: boolean,
+  onToggleMusic: (enabled: boolean) => void,
+  onToggleSfx: (enabled: boolean) => void
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -656,9 +1088,9 @@ export const OptionsModal = ({ isOpen, onClose, currentLanguage, onSetLanguage, 
             exit={{ scale: 0.9, y: 20 }}
             className="w-full max-w-sm bg-zinc-900 border-2 border-red-900 rounded-3xl overflow-hidden shadow-2xl"
           >
-            <div className="p-6 border-b border-red-900/30 flex justify-between items-center bg-red-950/20">
+            <div className="p-4 border-b border-[var(--color-secondary)]/30 flex justify-between items-center bg-[var(--color-secondary)]/20">
               <div className="flex items-center gap-3">
-                <Settings className="text-red-500" />
+                <Settings className="text-[var(--color-primary)]" />
                 <h2 className="text-xl font-bold text-white uppercase tracking-widest">
                   {currentLanguage === 'pt' ? 'Opções' : 'Options'}
                 </h2>
@@ -668,9 +1100,9 @@ export const OptionsModal = ({ isOpen, onClose, currentLanguage, onSetLanguage, 
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-4 space-y-4">
               <div className="space-y-4">
-                <label className="text-xs uppercase tracking-widest text-red-500 font-bold block">
+                <label className="text-xs uppercase tracking-widest text-[var(--color-primary)] font-bold block">
                   {currentLanguage === 'pt' ? 'Idioma' : 'Language'}
                 </label>
                 <div className="grid grid-cols-2 gap-4">
@@ -698,22 +1130,49 @@ export const OptionsModal = ({ isOpen, onClose, currentLanguage, onSetLanguage, 
               </div>
 
               <div className="space-y-4">
+                <label className="text-xs uppercase tracking-widest text-[var(--color-primary)] font-bold block">
+                  {currentLanguage === 'pt' ? 'Áudio' : 'Audio'}
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => {
+                      onToggleMusic(!musicEnabled);
+                      audioService.playSound('click');
+                    }}
+                    className={`px-4 py-3 rounded-xl font-bold transition-all border-2 flex items-center justify-center gap-2 ${
+                      musicEnabled 
+                        ? 'bg-red-900/40 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' 
+                        : 'bg-black/40 border-zinc-800 text-gray-500 hover:border-red-900/50'
+                    }`}
+                  >
+                    {musicEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                    {currentLanguage === 'pt' ? 'Música' : 'Music'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      onToggleSfx(!sfxEnabled);
+                      audioService.playSound('click');
+                    }}
+                    className={`px-4 py-3 rounded-xl font-bold transition-all border-2 flex items-center justify-center gap-2 ${
+                      sfxEnabled 
+                        ? 'bg-red-900/40 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' 
+                        : 'bg-black/40 border-zinc-800 text-gray-500 hover:border-red-900/50'
+                    }`}
+                  >
+                    {sfxEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                    {currentLanguage === 'pt' ? 'Efeitos' : 'SFX'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 <label className="text-xs uppercase tracking-widest text-red-500 font-bold block">
                   {currentLanguage === 'pt' ? 'Dados do Jogo' : 'Game Data'}
                 </label>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <button
-                      onClick={() => {
-                        const data = onExport();
-                        const blob = new Blob([data], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `crimson_relics_save_${new Date().getTime()}.sav`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}
+                      onClick={onOpenExport}
                       className="px-4 py-3 bg-red-900/40 border-2 border-red-500 rounded-xl font-bold text-white hover:bg-red-800/50 transition-all text-xs"
                     >
                       {currentLanguage === 'pt' ? 'Exportar Arquivo' : 'Export File'}
@@ -743,37 +1202,6 @@ export const OptionsModal = ({ isOpen, onClose, currentLanguage, onSetLanguage, 
                         {currentLanguage === 'pt' ? 'Importar Arquivo' : 'Import File'}
                       </button>
                     </div>
-                  </div>
-                  <textarea
-                    id="save-data-area"
-                    className="w-full h-20 bg-black/60 border border-zinc-800 rounded-xl p-3 text-[10px] font-mono text-gray-400 focus:border-red-900 outline-none resize-none"
-                    placeholder={currentLanguage === 'pt' ? 'Ou cole o código aqui...' : 'Or paste code here...'}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => {
-                        const area = document.getElementById('save-data-area') as HTMLTextAreaElement;
-                        if (area) {
-                          area.value = onExport();
-                          area.select();
-                          document.execCommand('copy');
-                        }
-                      }}
-                      className="px-4 py-2 bg-black/20 border border-zinc-800 rounded-lg font-bold text-gray-500 hover:text-gray-300 transition-all text-[10px] uppercase"
-                    >
-                      {currentLanguage === 'pt' ? 'Copiar Código' : 'Copy Code'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        const area = document.getElementById('save-data-area') as HTMLTextAreaElement;
-                        if (area && area.value) {
-                          onImport(area.value);
-                        }
-                      }}
-                      className="px-4 py-2 bg-black/20 border border-zinc-800 rounded-lg font-bold text-gray-500 hover:text-gray-300 transition-all text-[10px] uppercase"
-                    >
-                      {currentLanguage === 'pt' ? 'Colar Código' : 'Paste Code'}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -839,19 +1267,19 @@ export const LevelWinScreen = ({ onStart, score, level, bags, language }: Screen
     <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center text-center p-12 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
+      className="flex flex-col items-center justify-center text-center p-8 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
     >
       <div className="mb-4 p-4 bg-red-900/20 rounded-full">
         <Trophy className="text-yellow-500" size={48} />
       </div>
-      <h2 className="text-5xl font-bold text-red-600 uppercase tracking-tighter mb-2">
+      <h2 className="text-5xl mb-2 font-bloody text-red-600 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">
         {language === 'pt' ? 'Ritual Completo' : 'Ritual Complete'}
       </h2>
       <p className="text-gray-400 mb-8 uppercase tracking-widest text-sm">
         {language === 'pt' ? `Nível ${level} Dominado` : `Level ${level} Mastered`}
       </p>
       
-      <div className="grid grid-cols-1 gap-8 mb-12 w-full max-w-xs">
+      <div className="grid grid-cols-1 gap-8 mb-6 w-full max-w-xs">
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
           <span className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1">
             {language === 'pt' ? 'Moedas de Sangue Ganhas' : 'Blood Coins Earned'}
@@ -870,7 +1298,7 @@ export const LevelWinScreen = ({ onStart, score, level, bags, language }: Screen
           audioService.playSound('click');
           onStart();
         }}
-        className="px-12 py-4 bg-red-900 text-white font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest"
+        className="px-8 py-3 bg-red-900 text-white font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest"
       >
         {language === 'pt' ? 'Próximo Ritual' : 'Next Ritual'}
       </motion.button>
@@ -883,16 +1311,16 @@ export const GameOverScreen = ({ onStart, score, language }: ScreenProps) => {
     <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center text-center p-12 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
+      className="flex flex-col items-center justify-center text-center p-8 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
     >
-      <h2 className="text-5xl font-bold text-red-600 uppercase tracking-tighter mb-4">
+      <h2 className="text-5xl mb-4 metallic-title">
         {language === 'pt' ? 'Ritual Falhou' : 'Ritual Failed'}
       </h2>
       <p className="text-gray-400 mb-8 uppercase tracking-widest text-sm">
         {language === 'pt' ? 'A lua de sangue desaparece...' : 'The blood moon fades...'}
       </p>
       
-      <div className="mb-12">
+      <div className="mb-6">
         <span className="text-xs uppercase tracking-[0.3em] text-gray-500 block mb-2">
           {language === 'pt' ? 'Essência Final Coletada' : 'Final Essence Collected'}
         </span>
@@ -906,7 +1334,7 @@ export const GameOverScreen = ({ onStart, score, language }: ScreenProps) => {
           audioService.playSound('click');
           onStart();
         }}
-        className="px-12 py-4 bg-red-900 text-white font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest"
+        className="px-8 py-3 bg-red-900 text-white font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest"
       >
         {language === 'pt' ? 'Tentar Novamente' : 'Try Again'}
       </motion.button>
@@ -922,9 +1350,9 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col items-center w-full max-w-4xl p-8 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl overflow-y-auto max-h-[90vh]"
+      className="flex flex-col items-center w-full max-w-6xl p-4 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl overflow-y-auto max-h-[90vh]"
     >
-      <div className="flex justify-between items-center w-full mb-8">
+      <div className="flex justify-between items-center w-full mb-4">
         <button 
           onClick={() => {
             audioService.playSound('click');
@@ -934,7 +1362,7 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
         >
           <ArrowLeft size={16} /> {lang === 'pt' ? 'Voltar' : 'Back'}
         </button>
-        <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest">
+        <h2 className="text-4xl metallic-title tracking-widest">
           {lang === 'pt' ? 'Relíquias Antigas' : 'Ancient Relics'}
         </h2>
         <div className="w-16" />
@@ -983,7 +1411,7 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
               initial={{ scale: 0.9, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              className="bg-zinc-900 border-2 border-red-600 p-8 rounded-3xl max-w-md w-full relative shadow-[0_0_50px_rgba(220,38,38,0.3)]"
+              className="bg-zinc-900 border-2 border-red-600 p-4 rounded-3xl max-w-md w-full relative shadow-[0_0_50px_rgba(220,38,38,0.3)]"
               onClick={e => e.stopPropagation()}
             >
               <button 
@@ -1025,6 +1453,93 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
         )}
       </AnimatePresence>
     </motion.div>
+  );
+};
+
+export const ExportModal = ({ isOpen, onClose, onConfirm, language }: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onConfirm: (options: ExportOptions) => void,
+  language: Language 
+}) => {
+  const [options, setOptions] = useState<ExportOptions>({
+    ritual: true,
+    titles: true,
+    relics: true,
+    achievements: true,
+    speedruns: true
+  });
+
+  const toggleOption = (key: keyof ExportOptions) => {
+    setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const t = (en: string, pt: string) => language === 'pt' ? pt : en;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 20, opacity: 0 }}
+            className="w-full max-w-md bg-gradient-to-b from-red-950 to-black border-2 border-red-600 rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(220,38,38,0.3)] relative"
+          >
+            {/* Shiny border effect */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 border border-red-500/30 rounded-[2rem] animate-pulse" />
+            </div>
+
+            <div className="p-4 relative z-10">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-white uppercase tracking-[0.2em] font-serif">
+                  {t('Export Ritual', 'Exportar Ritual')}
+                </h2>
+                <button onClick={onClose} className="text-red-500 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                {[
+                  { id: 'ritual', en: 'Current Ritual - Coins - Etc', pt: 'Salvar Ritual atual - Moedas - Etc' },
+                  { id: 'titles', en: 'Save Titles', pt: 'Salvar Títulos' },
+                  { id: 'relics', en: 'Save Relics', pt: 'Salvar Relíquias' },
+                  { id: 'achievements', en: 'Save Achievements', pt: 'Salvar Conquistas' },
+                  { id: 'speedruns', en: 'Save Speed Runs', pt: 'Salvar Speed Runs' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleOption(item.id as keyof ExportOptions)}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-black/40 border border-red-900/30 hover:border-red-600 transition-all group"
+                  >
+                    <span className="text-sm font-bold text-gray-300 group-hover:text-white uppercase tracking-widest">
+                      {t(item.en, item.pt)}
+                    </span>
+                    <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${options[item.id as keyof ExportOptions] ? 'bg-red-600 border-red-500' : 'border-zinc-700'}`}>
+                      {options[item.id as keyof ExportOptions] && <Check size={16} className="text-white" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => onConfirm(options)}
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.3em] rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all active:scale-95"
+              >
+                {t('Confirm Export', 'Confirmar Exportação')}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -1081,7 +1596,7 @@ export const RelicUnlockScreen = ({ relic, onStart, language }: { relic: Relic, 
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-8"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-4"
     >
       <motion.div
         initial={{ scale: 0.5, rotate: -10, opacity: 0 }}
@@ -1098,13 +1613,13 @@ export const RelicUnlockScreen = ({ relic, onStart, language }: { relic: Relic, 
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="relative p-10 bg-red-900 rounded-full border-4 border-red-500 shadow-[0_0_50px_rgba(220,38,38,0.5)] text-white"
+            className="relative p-6 bg-red-900 rounded-full border-4 border-red-500 shadow-[0_0_50px_rgba(220,38,38,0.5)] text-white"
           >
             <Icon size={80} />
           </motion.div>
         </div>
 
-        <h3 className="text-red-500 uppercase tracking-[0.4em] text-sm font-bold mb-2">
+        <h3 className="text-red-600 uppercase tracking-[0.4em] text-xl font-bloody mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">
           {language === 'pt' ? 'Relíquia Recuperada' : 'Relic Recovered'}
         </h3>
         <h2 className="text-5xl font-black text-white uppercase tracking-tighter mb-6">{t(relic.name, language)}</h2>
@@ -1142,10 +1657,10 @@ export const AchievementNotification = ({ achievement, language }: { achievement
         <Icon size={24} />
       </div>
       <div className="flex flex-col">
-        <span className="text-[10px] uppercase tracking-widest text-yellow-500 font-bold mb-1">
+        <span className="text-[10px] uppercase tracking-widest text-red-500 font-bloody mb-1">
           {language === 'pt' ? 'Conquista Desbloqueada!' : 'Achievement Unlocked!'}
         </span>
-        <h4 className="text-sm font-bold text-white uppercase tracking-tight">{t(achievement.name, language)}</h4>
+        <h4 className="text-sm font-bold text-white uppercase tracking-tight font-cinzel">{t(achievement.name, language)}</h4>
       </div>
     </motion.div>
   );
@@ -1166,9 +1681,9 @@ export const AchievementsScreen = ({ unlockedAchievements = [], language, onBack
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative flex flex-col items-center w-full max-w-5xl p-8 bg-black/90 rounded-3xl border-4 border-yellow-900/30 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
+      className="relative flex flex-col items-center w-full max-w-7xl p-4 bg-black/90 rounded-3xl border-4 border-yellow-900/30 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl"
     >
-      <div className="w-full flex justify-between items-center mb-12">
+      <div className="w-full flex justify-between items-center mb-6">
         <button 
           onClick={onBack}
           className="flex items-center gap-2 px-6 py-3 bg-black/40 hover:bg-yellow-900/40 rounded-full border border-yellow-900/20 text-yellow-500 text-sm uppercase tracking-widest transition-all"
@@ -1176,7 +1691,7 @@ export const AchievementsScreen = ({ unlockedAchievements = [], language, onBack
           <ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
         </button>
-        <h2 className="text-4xl font-black text-white uppercase tracking-tighter">
+        <h2 className="text-4xl metallic-title tracking-widest">
           {language === 'pt' ? 'Conquistas' : 'Achievements'}
         </h2>
         <div className="flex items-center gap-4">
@@ -1274,77 +1789,6 @@ export const PowerUpNotification = ({ notification, language }: { notification: 
               {t(notification.name, language)}
             </h2>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
-
-export const BloodCodesModal = ({ isOpen, onClose, onApplyCode, language }: { isOpen: boolean, onClose: () => void, onApplyCode: (code: string) => void, language: Language }) => {
-  const [code, setCode] = useState('');
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-6"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.9, y: 20, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            className="bg-zinc-950 border-2 border-red-900 p-8 rounded-3xl max-w-md w-full relative shadow-[0_0_50px_rgba(220,38,38,0.2)]"
-            onClick={e => e.stopPropagation()}
-          >
-            <button 
-              onClick={() => {
-                audioService.playSound('click');
-                onClose();
-              }}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
-            >
-              <X size={24} />
-            </button>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="p-4 bg-red-900/20 rounded-full text-red-500 mb-6 border border-red-900/50">
-                <Skull size={48} />
-              </div>
-              
-              <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
-                {language === 'pt' ? 'Códigos Sangrentos' : 'Blood Codes'}
-              </h2>
-              <p className="text-zinc-500 text-sm mb-8">
-                {language === 'pt' ? 'Insira um código antigo para despertar poderes ocultos.' : 'Enter an ancient code to awaken hidden powers.'}
-              </p>
-
-              <div className="w-full space-y-4">
-                <input 
-                  type="text"
-                  value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
-                  placeholder={language === 'pt' ? 'INSIRA O CÓDIGO...' : 'ENTER CODE...'}
-                  className="w-full bg-black border-2 border-red-900/30 rounded-xl px-6 py-4 text-center text-xl font-bold text-red-500 focus:border-red-600 outline-none transition-all placeholder:text-red-900/30"
-                />
-
-                <motion.button
-                  whileHover={{ scale: 1.02, backgroundColor: '#8b0000' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    onApplyCode(code);
-                    setCode('');
-                  }}
-                  className="w-full py-4 bg-red-900 text-white font-bold text-lg rounded-xl border border-red-500/30 shadow-[0_0_20px_rgba(139,0,0,0.3)] transition-all uppercase tracking-widest"
-                >
-                  {language === 'pt' ? 'Despertar' : 'Awaken'}
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

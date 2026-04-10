@@ -21,15 +21,26 @@ export const PieceComponent = ({ type, isSelected, isHint, isProcessing, special
   return (
     <motion.div
       layout
-      initial={{ scale: 0, opacity: 0 }}
+      initial={{ scale: 0, opacity: 0, rotate: -45 }}
       animate={{ 
         scale: isSelected ? 1.1 : (isHint ? [1, 1.1, 1] : 1), 
         opacity: 1,
+        rotate: 0,
         boxShadow: isSelected ? `0 0 20px ${config.glow}` : (isHint ? `0 0 15px ${config.glow}` : (isPowerful ? `0 0 15px #ff00ff` : (isSpecial ? `0 0 10px ${config.color}` : 'none'))),
         borderColor: isSelected ? config.color : (isHint ? config.color : (isPowerful ? '#ff00ff' : (isSpecial ? config.color : 'transparent')))
       }}
-      transition={isHint ? { duration: 1, repeat: Infinity } : {}}
-      exit={{ scale: 0, opacity: 0 }}
+      transition={isHint ? { duration: 1, repeat: Infinity } : {
+        type: 'spring',
+        stiffness: 260,
+        damping: 20
+      }}
+      exit={{ 
+        scale: 1.5, 
+        opacity: 0, 
+        rotate: 45,
+        filter: "blur(10px)",
+        transition: { duration: 0.5, ease: "easeOut" }
+      }}
       whileHover={!isProcessing ? { scale: 1.05, boxShadow: `0 0 15px ${config.glow}` } : {}}
       onClick={onClick}
       className={`

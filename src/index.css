@@ -1,23 +1,34 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Cinzel:wght@400;700;900&family=Almendra:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700;900&family=UnifrakturCook:wght@700&family=Almendra:ital,wght@0,400;0,700;1,400;1,700&family=Pirata+One&family=Creepster&family=Nosifer&display=swap');
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
-  --font-gothic: "Cinzel", serif;
+  --font-gothic: "Pirata One", system-ui;
+  --font-horror: "Creepster", system-ui;
+  --font-bloody: "Nosifer", cursive;
   --font-archaic: "Almendra", serif;
+  --font-unifraktur: "UnifrakturCook", cursive;
+  --font-cinzel: "Cinzel", serif;
+  --font-cinzel-decorative: "Cinzel Decorative", serif;
 }
 
 :root {
-  background-color: #050505;
-  color: #e5e5e5;
+  --color-primary: #ff1a1a;
+  --color-secondary: #991b1b;
+  --color-accent: #ef4444;
+  --color-background: #050505;
+  --color-text: #e5e5e5;
+  
+  background-color: var(--color-background);
+  color: var(--color-text);
   overflow: hidden;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #050505;
+  background: var(--color-background);
   background-attachment: fixed;
 }
 
@@ -48,75 +59,59 @@ body {
 }
 
 .metallic-title {
-  font-family: var(--font-gothic);
+  font-family: var(--font-unifraktur);
   text-transform: uppercase;
-  letter-spacing: -0.05em;
-  background: linear-gradient(to bottom, #ff3333 0%, #8b0000 50%, #4a0000 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5)) drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.8));
-  position: relative;
+  letter-spacing: 0.15em;
+  color: #ff1a1a;
+  filter: drop-shadow(0 0 8px rgba(255, 26, 26, 0.6)) blur(0.5px);
+  animation: heartbeat 3s ease-in-out infinite;
 }
 
-.metallic-title::after {
-  content: attr(data-text);
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: -1;
-  -webkit-text-stroke: 4px #2a0000;
-  text-stroke: 4px #2a0000;
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 26, 26, 0.6)) blur(0.5px); }
+  50% { transform: scale(1.02); filter: drop-shadow(0 0 15px rgba(255, 26, 26, 0.8)) blur(0.2px); }
+}
+
+@keyframes unstable {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+}
+
+.animate-unstable {
+  animation: unstable 0.2s ease-in-out infinite;
 }
 
 .gothic-button {
   position: relative;
   background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-  border: 1px solid #3a0000;
+  border: 1px solid var(--color-secondary);
   box-shadow: 
     inset 0 0 10px rgba(0, 0, 0, 0.8),
     0 5px 15px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
-.gothic-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-  opacity: 0.1;
-  pointer-events: none;
-}
-
-.gothic-button::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.1), transparent);
-  transition: all 0.5s ease;
-}
-
-.gothic-button:hover::after {
-  left: 100%;
-}
-
 .gothic-button:hover {
-  border-color: #ff0000;
+  border-color: var(--color-primary);
   box-shadow: 
-    0 0 20px rgba(255, 0, 0, 0.2),
-    inset 0 0 15px rgba(255, 0, 0, 0.1);
-  transform: translateY(-2px);
+    0 0 15px rgba(255, 26, 26, 0.4),
+    inset 0 0 10px rgba(255, 26, 26, 0.2);
+  transform: scale(1.05);
+}
+
+.gothic-button:active {
+  transform: scale(0.97);
 }
 
 .gothic-button-ornament {
   position: absolute;
   width: 10px;
   height: 10px;
-  border: 1px solid #4a0000;
+  border: 1px solid var(--color-secondary);
   transform: rotate(45deg);
   background: #1a1a1a;
 }

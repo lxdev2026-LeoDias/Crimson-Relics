@@ -21,8 +21,11 @@ export type SoundEffect =
 
 class AudioService {
   private isMuted: boolean = false;
+  private musicEnabled: boolean = true;
+  private sfxEnabled: boolean = true;
   private volume: number = 0.2;
   private audioContext: AudioContext | null = null;
+  private musicInterval: NodeJS.Timeout | null = null;
 
   private initAudioContext() {
     if (!this.audioContext) {
@@ -35,6 +38,19 @@ class AudioService {
 
   setMuted(muted: boolean) {
     this.isMuted = muted;
+  }
+
+  setMusicEnabled(enabled: boolean) {
+    this.musicEnabled = enabled;
+    if (!enabled) {
+      this.stopMusic();
+    } else {
+      this.playMusic('main');
+    }
+  }
+
+  setSfxEnabled(enabled: boolean) {
+    this.sfxEnabled = enabled;
   }
 
   setVolume(volume: number) {
@@ -53,7 +69,7 @@ class AudioService {
   }
 
   playSound(effect: SoundEffect) {
-    if (this.isMuted) return;
+    if (this.isMuted || !this.sfxEnabled) return;
     this.initAudioContext();
     if (!this.audioContext) return;
 
@@ -222,13 +238,51 @@ class AudioService {
   }
 
   playMusic(_track: string) {
-    // Music synthesis is complex for a simple service, 
-    // but we could implement a simple arpeggio loop if needed.
-    // For now, focusing on the requested 8-bit sound effects.
+    if (this.isMuted || !this.musicEnabled) return;
+    this.initAudioContext();
+    if (!this.audioContext) return;
+    if (this.musicInterval) return;
+
+    const ctx = this.audioContext;
+    const playNote = (freq: number, time: number, duration: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0.05, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(time);
+      osc.stop(time + duration);
+    };
+
+    const melody = [
+      130.81, 155.56, 196.00, 155.56, // C3, Eb3, G3, Eb3
+      130.81, 155.56, 196.00, 155.56,
+      123.47, 146.83, 185.00, 146.83, // B2, D3, Gb3, D3
+      123.47, 146.83, 185.00, 146.83
+    ];
+
+    let step = 0;
+    const scheduleNext = () => {
+      const now = ctx.currentTime;
+      for (let i = 0; i < 8; i++) {
+        const note = melody[(step + i) % melody.length];
+        playNote(note, now + i * 0.25, 0.2);
+      }
+      step += 8;
+    };
+
+    scheduleNext();
+    this.musicInterval = setInterval(scheduleNext, 2000);
   }
 
   stopMusic() {
-    // Music stop logic
+    if (this.musicInterval) {
+      clearInterval(this.musicInterval);
+      this.musicInterval = null;
+    }
   }
 }
 

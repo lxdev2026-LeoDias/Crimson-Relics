@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Ghost, Skull, Moon, Cat, Eye, Pentagon, Triangle, Sparkles } from 'lucide-react';
+import { Ghost, Skull, Moon, Cat, Eye, Pentagon, Triangle, Sparkles, Zap, Flame, CloudRain, Wind } from 'lucide-react';
 
 const EFFECTS = [
   { icon: Eye, color: 'text-red-600' },
@@ -11,6 +11,10 @@ const EFFECTS = [
   { icon: Moon, color: 'text-indigo-950' },
   { icon: Cat, color: 'text-black' },
   { icon: Sparkles, color: 'text-red-500' },
+  { icon: Zap, color: 'text-yellow-900' },
+  { icon: Flame, color: 'text-orange-900' },
+  { icon: CloudRain, color: 'text-blue-950' },
+  { icon: Wind, color: 'text-slate-900' },
 ];
 
 interface ActiveEffect {
@@ -46,10 +50,10 @@ export const SinisterEffects = () => {
     };
 
     const interval = setInterval(() => {
-      if (Math.random() > 0.4) { // 60% chance to spawn every interval
+      if (Math.random() > 0.2) { // 80% chance to spawn every interval (was 60%)
         spawnEffect();
       }
-    }, 2000);
+    }, 1200); // Faster interval (was 2000)
 
     return () => clearInterval(interval);
   }, []);

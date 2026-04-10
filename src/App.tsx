@@ -7,22 +7,24 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMatch3 } from './hooks/useMatch3';
 import { GridComponent } from './components/Grid';
-import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, BloodCodesModal, LowMovesWarning } from './components/GameUI';
+import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ExportModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, LowMovesWarning, FinalLoreScreen, SpeedRunStats, SpeedRunPanel, SpeedRunSetupModal } from './components/GameUI';
 import { audioService } from './services/audioService';
 import { SinisterEffects } from './components/SinisterEffects';
-import { GameState, Language } from './types';
+import { GameState, Language, ExportOptions } from './types';
 import { POWER_UPS } from './constants';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('intro');
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const [isBloodCodesOpen, setIsBloodCodesOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSpeedRunSetupOpen, setIsSpeedRunSetupOpen] = useState(false);
   
   const {
     grid,
     score,
     moves,
+    currentMatchScore,
     isProcessing,
     selectedPiece,
     currentLevel,
@@ -41,7 +43,6 @@ export default function App() {
     importSave,
     setLanguage,
     setSelectedTitle,
-    handleBloodCode,
     initLevel,
     handlePieceClick,
     getPowerUpCost,
@@ -51,7 +52,41 @@ export default function App() {
     checkWinCondition,
     resetProgress,
     setNewRelicUnlocked,
+    setSkipLore,
+    isSpeedRun,
+    speedRunCoins,
+    lastSpeedRun,
+    speedRunLevelIndex,
+    speedRunTimers,
+    speedRunStartTime,
+    currentLevelStartTime,
+    startSpeedRun,
+    cancelSpeedRun,
+    setMusicEnabled,
+    setSfxEnabled,
   } = useMatch3();
+
+  const [currentLevelTime, setCurrentLevelTime] = useState(0);
+  const [totalSpeedRunTime, setTotalSpeedRunTime] = useState(0);
+
+  useEffect(() => {
+    if (playerStats.musicEnabled) {
+      audioService.playMusic('main');
+    }
+    return () => audioService.stopMusic();
+  }, [playerStats.musicEnabled]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (gameState === 'playing' && isSpeedRun) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        setCurrentLevelTime((now - currentLevelStartTime) / 1000);
+        setTotalSpeedRunTime((now - speedRunStartTime) / 1000);
+      }, 100);
+    }
+    return () => clearInterval(interval);
+  }, [gameState, isSpeedRun, currentLevelStartTime, speedRunStartTime]);
 
   useEffect(() => {
     if (gameState === 'playing' && moves <= 0 && !isProcessing) {
@@ -77,12 +112,32 @@ export default function App() {
 
   const handleLevelWin = () => {
     if (gameState !== 'playing') return;
-    completeLevel();
+    const result = completeLevel();
+    
+    if (result === 'next_speedrun') {
+      // Logic handled inside completeLevel (initLevel called)
+      return;
+    }
+    
+    if (result === 'speedrun_complete') {
+      setGameState('speedrun_stats');
+      return;
+    }
+
+    if (result === 'game_complete') {
+      setGameState('final_lore');
+      return;
+    }
+
     setGameState('levelwin');
   };
 
   const startRitual = () => {
-    setGameState('lore');
+    if (playerStats.skipLore) {
+      startPlaying();
+    } else {
+      setGameState('lore');
+    }
   };
 
   const startPlaying = () => {
@@ -96,12 +151,9 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden font-sans select-none">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden font-sans select-none bg-black">
       {/* Background Atmosphere */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-900/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-900/10 rounded-full blur-[120px] animate-pulse delay-1000" />
-        
+      <div className="absolute inset-0 z-0 pointer-events-none bg-black">
         {/* Fog effect */}
         <div className="absolute inset-0 opacity-20 mix-blend-overlay">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
@@ -110,14 +162,6 @@ export default function App() {
 
       {/* Sinister Visual Effects */}
       <SinisterEffects />
-
-      {/* Blood Codes Modal */}
-      <BloodCodesModal 
-        isOpen={isBloodCodesOpen}
-        onClose={() => setIsBloodCodesOpen(false)}
-        onApplyCode={handleBloodCode}
-        language={playerStats.language}
-      />
 
       {/* Combo Feedback */}
       <ComboFeedback text={lastComboText} comboCount={comboCount} />
@@ -141,14 +185,19 @@ export default function App() {
             exit={{ opacity: 0, y: -20 }}
             className="z-10"
           >
-            <IntroScreen 
-              onStart={startRitual} 
-              onOpenRelics={() => setGameState('relics')}
-              onOpenAchievements={() => setGameState('achievements')}
-              onOpenOptions={() => setIsOptionsOpen(true)}
-              onOpenBloodCodes={() => setIsBloodCodesOpen(true)}
-              language={playerStats.language}
-            />
+              <IntroScreen 
+                onStart={startRitual} 
+                onOpenRelics={() => setGameState('relics')}
+                onOpenAchievements={() => setGameState('achievements')}
+                onOpenOptions={() => setIsOptionsOpen(true)}
+                language={playerStats.language}
+                speedRunUnlocked={playerStats.speedRunUnlocked}
+                bestSpeedRun={playerStats.bestSpeedRun}
+                speedRunRecords={playerStats.speedRunRecords}
+                onStartSpeedRun={() => setIsSpeedRunSetupOpen(true)}
+                onOpenSpeedRunStats={() => setGameState('speedrun_stats')}
+                level={playerStats.level}
+              />
           </motion.div>
         )}
 
@@ -162,6 +211,7 @@ export default function App() {
           >
             <LoreScreen 
               onStart={startPlaying} 
+              onSkipLore={setSkipLore}
               language={playerStats.language}
             />
           </motion.div>
@@ -201,75 +251,94 @@ export default function App() {
         {gameState === 'playing' && (
           <motion.div
             key="playing"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="z-10 flex flex-col items-center w-full max-w-4xl px-4 py-12 relative rounded-[40px] border-2 border-red-900/20 overflow-hidden bg-zinc-950/80 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="z-10 flex flex-col items-center w-full max-w-full px-4 py-2 relative overflow-hidden"
           >
-            {/* Circulating Glow Border Effect */}
-            <div className="absolute inset-0 pointer-events-none">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-[-150%] opacity-50 blur-xl"
-                style={{
-                  background: 'conic-gradient(from 0deg, transparent 0deg, transparent 175deg, #ff0000 180deg, transparent 185deg, transparent 360deg)',
-                }}
-              />
-              {/* Inner mask to keep glow only on edges */}
-              <div className="absolute inset-[2px] bg-zinc-950/90 rounded-[38px]" />
-            </div>
-
             <div className="relative z-10 w-full flex flex-col items-center">
               <HUD 
                 score={score} 
+                currentMatchScore={currentMatchScore}
                 moves={moves} 
                 goals={goals} 
                 playerStats={playerStats}
                 onOpenShop={() => setIsShopOpen(true)}
-                onBackToMenu={() => setGameState('intro')}
+                onBackToMenu={() => {
+                  if (isSpeedRun) cancelSpeedRun();
+                  setGameState('intro');
+                }}
                 onSelectTitle={setSelectedTitle}
+                isSpeedRun={isSpeedRun}
+                speedRunLevelIndex={speedRunLevelIndex}
+                currentLevelTime={currentLevelTime}
+                totalSpeedRunTime={totalSpeedRunTime}
               />
               
-              <div className="relative">
-                <GridComponent
-                  grid={grid}
-                  selectedPiece={selectedPiece}
-                  isProcessing={isProcessing}
-                  isShaking={isShaking}
-                  hintPiece={hintPiece}
-                  effects={effects}
-                  onPieceClick={handlePieceClick}
-                />
-                
-                {/* Power-up Activation Overlay */}
-                <AnimatePresence>
-                  {activePowerUp && (
+              <div className="relative flex items-center justify-center gap-8 w-full">
+                {/* Side Score Counter */}
+                <div className="flex flex-col items-center justify-center w-40 h-80 p-4 relative overflow-hidden">
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-red-500/50 font-bold mb-4 text-center">
+                    {playerStats.language === 'pt' ? 'Combo Atual' : 'Current Combo'}
+                  </span>
+                  <AnimatePresence mode="wait">
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                      key={currentMatchScore}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 1.5, opacity: 0 }}
+                      className="text-4xl font-black text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]"
                     >
-                      <div className="bg-red-600/20 backdrop-blur-sm border-4 border-red-600 rounded-3xl inset-0 absolute animate-pulse" />
-                      <div className="bg-black/60 px-6 py-3 rounded-full border border-red-500 text-red-500 font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_20px_rgba(220,38,38,0.5)]">
-                        {(() => {
-                          const pu = POWER_UPS.find(p => p.type === activePowerUp);
-                          const name = pu ? (pu.name[playerStats.language] || pu.name['en']) : activePowerUp;
-                          return playerStats.language === 'pt' ? `Selecione o Alvo para ${name}` : `Select Target for ${name}`;
-                        })()}
-                      </div>
+                      {currentMatchScore.toLocaleString()}
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                  </AnimatePresence>
+                </div>
+
+                <div className="relative">
+                  <GridComponent
+                    grid={grid}
+                    selectedPiece={selectedPiece}
+                    isProcessing={isProcessing}
+                    isShaking={isShaking}
+                    hintPiece={hintPiece}
+                    effects={effects}
+                    onPieceClick={handlePieceClick}
+                  />
+                  
+                  {/* Power-up Activation Overlay */}
+                  <AnimatePresence>
+                    {activePowerUp && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                      >
+                        <div className="bg-red-600/20 backdrop-blur-sm border-4 border-red-600 rounded-3xl inset-0 absolute animate-pulse" />
+                        <div className="bg-black/60 px-6 py-3 rounded-full border border-red-500 text-red-500 font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+                          {(() => {
+                            const pu = POWER_UPS.find(p => p.type === activePowerUp);
+                            const name = pu ? (pu.name[playerStats.language] || pu.name['en']) : activePowerUp;
+                            return playerStats.language === 'pt' ? `Selecione o Alvo para ${name}` : `Select Target for ${name}`;
+                          })()}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Speed Run Times Panel */}
+                {isSpeedRun && (
+                  <SpeedRunPanel 
+                    levelTimes={speedRunTimers}
+                    currentLevelTime={currentLevelTime}
+                    speedRunLevelIndex={speedRunLevelIndex}
+                    language={playerStats.language}
+                  />
+                )}
               </div>
             </div>
             
-            <div className="mt-8 text-red-500/40 text-[10px] uppercase tracking-[0.4em] font-medium flex items-center gap-4">
-              <div className="h-[1px] w-8 bg-red-900/30" />
-              {playerStats.language === 'pt' ? 'O Ritual Exige Sacrifício' : 'The Ritual Demands Sacrifice'}
-              <div className="h-[1px] w-8 bg-red-900/30" />
-            </div>
           </motion.div>
         )}
 
@@ -302,6 +371,25 @@ export default function App() {
             <GameOverScreen onStart={startPlaying} score={score} language={playerStats.language} />
           </motion.div>
         )}
+
+        {gameState === 'final_lore' && (
+          <FinalLoreScreen 
+            onStart={() => setGameState('intro')} 
+            language={playerStats.language} 
+          />
+        )}
+
+        {gameState === 'speedrun_stats' && (
+          <SpeedRunStats 
+            lastSpeedRun={lastSpeedRun}
+            speedRunRecords={playerStats.speedRunRecords}
+            language={playerStats.language} 
+            onBack={() => {
+              if (isSpeedRun) cancelSpeedRun();
+              setGameState('intro');
+            }} 
+          />
+        )}
       </AnimatePresence>
 
       {newRelicUnlocked && (
@@ -318,7 +406,7 @@ export default function App() {
       <Shop 
         isOpen={isShopOpen} 
         onClose={() => setIsShopOpen(false)} 
-        bloodCoins={playerStats.bloodCoins}
+        bloodCoins={isSpeedRun ? speedRunCoins : playerStats.bloodCoins}
         language={playerStats.language}
         onBuy={buyPowerUp}
         getPowerUpCost={getPowerUpCost}
@@ -330,13 +418,34 @@ export default function App() {
         onClose={() => setIsOptionsOpen(false)}
         currentLanguage={playerStats.language}
         onSetLanguage={setLanguage}
-        onExport={exportSave}
+        onOpenExport={() => setIsExportModalOpen(true)}
         onImport={(save: string) => {
           if (importSave(save)) {
             setIsOptionsOpen(false);
           }
         }}
         onReset={resetProgress}
+        musicEnabled={playerStats.musicEnabled ?? true}
+        sfxEnabled={playerStats.sfxEnabled ?? true}
+        onToggleMusic={setMusicEnabled}
+        onToggleSfx={setSfxEnabled}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        language={playerStats.language}
+        onConfirm={(options) => {
+          const data = exportSave(options);
+          const blob = new Blob([data], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `crimson_relics_save_${new Date().getTime()}.sav`;
+          a.click();
+          URL.revokeObjectURL(url);
+          setIsExportModalOpen(false);
+        }}
       />
 
       <PowerUpNotification 
@@ -345,6 +454,18 @@ export default function App() {
       />
 
       <LowMovesWarning moves={moves} />
+
+      <SpeedRunSetupModal
+        isOpen={isSpeedRunSetupOpen}
+        onClose={() => setIsSpeedRunSetupOpen(false)}
+        onStart={(name, title) => {
+          startSpeedRun(name, title);
+          setIsSpeedRunSetupOpen(false);
+          setGameState('playing');
+        }}
+        language={playerStats.language}
+        playerStats={playerStats}
+      />
 
       {/* Decorative Borders */}
       <div className="fixed top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-red-900/50 to-transparent z-50" />

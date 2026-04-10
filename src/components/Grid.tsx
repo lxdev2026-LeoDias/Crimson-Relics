@@ -23,24 +23,27 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
         y: [-2, 2, -2, 2, 0],
       } : {}}
       transition={{ duration: 0.2, repeat: isShaking ? Infinity : 0 }}
-      className="relative p-4 bg-black/60 rounded-3xl border-4 border-red-900/50 shadow-2xl backdrop-blur-md"
+      className="relative p-4"
     >
       <GridEffects effects={effects} gridSize={gridSize} />
 
       <div 
-        className="relative"
-        style={{ 
-          width: 'min(85vw, 600px)',
-          aspectRatio: '1/1'
-        }}
+        className="relative p-1 rounded-[32px] bg-gradient-to-br from-red-900/20 via-zinc-900 to-red-900/20 shadow-[0_0_40px_rgba(0,0,0,0.8)]"
       >
-        {/* Background Grid Cells */}
+        <div 
+          className="relative overflow-hidden rounded-[28px] border border-red-900/30"
+          style={{ 
+            width: 'min(85vw, 65vh, 600px)',
+            aspectRatio: '1/1'
+          }}
+        >
+          {/* Background Grid Cells */}
         <div 
           className="absolute inset-0 grid gap-2"
           style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
         >
           {Array.from({ length: gridSize * gridSize }).map((_, i) => (
-            <div key={`cell-${i}`} className="aspect-square bg-white/5 rounded-xl border border-white/5" />
+            <div key={`cell-${i}`} className="aspect-square bg-red-950/10 rounded-xl border border-red-900/20 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]" />
           ))}
         </div>
 
@@ -84,13 +87,8 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
             </motion.div>
           ))}
         </AnimatePresence>
+        </div>
       </div>
-      
-      {/* Gothic Ornaments */}
-      <div className="absolute -top-6 -left-6 w-12 h-12 border-t-4 border-l-4 border-red-800 rounded-tl-2xl opacity-50" />
-      <div className="absolute -top-6 -right-6 w-12 h-12 border-t-4 border-r-4 border-red-800 rounded-tr-2xl opacity-50" />
-      <div className="absolute -bottom-6 -left-6 w-12 h-12 border-b-4 border-l-4 border-red-800 rounded-bl-2xl opacity-50" />
-      <div className="absolute -bottom-6 -right-6 w-12 h-12 border-b-4 border-r-4 border-red-800 rounded-br-2xl opacity-50" />
     </motion.div>
   );
 };

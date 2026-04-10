@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Grid, Piece, PieceType, Position, Level, LevelGoal, PlayerStats, PowerUpType, Relic, Language, SpecialType, Achievement, LocalizedString } from '../types';
-import { GRID_SIZE, PIECE_TYPES, SCORE_BASE, SCORE_MATCH_4_MULT, SCORE_MATCH_5_MULT, SCORE_SHAPE_BONUS, COMBO_MULTIPLIERS, LEVELS, RELICS, ACHIEVEMENTS, POWER_UPS } from '../constants';
+import { Grid, Piece, PieceType, Position, Level, LevelGoal, PlayerStats, PowerUpType, Relic, Language, SpecialType, Achievement, LocalizedString, ExportOptions, SpeedRunRecord } from '../types';
+import { GRID_SIZE, PIECE_TYPES, SCORE_BASE, SCORE_MATCH_4_MULT, SCORE_MATCH_5_MULT, SCORE_SHAPE_BONUS, COMBO_MULTIPLIERS, LEVELS, RELICS, ACHIEVEMENTS, POWER_UPS, SPEEDRUN_LEVELS } from '../constants';
 import { GridEffect } from '../components/GridEffects';
 import { audioService } from '../services/audioService';
 
@@ -20,13 +20,15 @@ const STORAGE_KEY = 'blood_coven_stats';
 export const useMatch3 = () => {
   const [grid, setGrid] = useState<Grid>([]);
   const [score, setScore] = useState(0);
-  const [moves, setMoves] = useState(30);
+  const [moves, setMoves] = useState(25);
+  const [cheatMoves, setCheatMoves] = useState<number | null>(null);
+  const [currentMatchScore, setCurrentMatchScore] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPiece, setSelectedPiece] = useState<Position | null>(null);
   const [currentLevel, setCurrentLevel] = useState<Level>(LEVELS[0]);
   const [goals, setGoals] = useState<LevelGoal[]>([]);
   const [playerStats, setPlayerStats] = useState<PlayerStats>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('match3_player_stats') || localStorage.getItem('blood_bags_stats');
     if (saved) {
       try {
         const stats = JSON.parse(saved);
@@ -35,8 +37,15 @@ export const useMatch3 = () => {
           bloodCoins: stats.bloodCoins || stats.bloodBags || 1000,
           unlockedRelics: stats.unlockedRelics || [],
           unlockedAchievements: stats.unlockedAchievements || [],
+          earnedRelics: stats.earnedRelics || (stats.level > 1 ? RELICS.slice(0, Math.min(10, Math.floor(stats.level / 10))).map(r => r.id) : []),
           selectedTitleId: stats.selectedTitleId,
+          skipLore: stats.skipLore || false,
           language: stats.language || 'en',
+          speedRunUnlocked: true,
+          bestSpeedRun: stats.bestSpeedRun,
+          speedRunRecords: stats.speedRunRecords || [],
+          musicEnabled: stats.musicEnabled !== undefined ? stats.musicEnabled : true,
+          sfxEnabled: stats.sfxEnabled !== undefined ? stats.sfxEnabled : true,
         };
       } catch (e) {
         console.error('Failed to parse saved stats', e);
@@ -47,8 +56,14 @@ export const useMatch3 = () => {
       bloodCoins: 1000,
       unlockedRelics: [],
       unlockedAchievements: [],
+      earnedRelics: [],
       selectedTitleId: undefined,
+      skipLore: false,
       language: 'en',
+      speedRunUnlocked: true,
+      speedRunRecords: [],
+      musicEnabled: true,
+      sfxEnabled: true,
     };
   });
 
@@ -60,18 +75,36 @@ export const useMatch3 = () => {
     setPlayerStats(prev => ({ ...prev, selectedTitleId: titleId }));
   }, []);
 
-  const handleBloodCode = useCallback((code: string) => {
-    const cleanCode = code.trim().toUpperCase();
-    if (cleanCode === 'DRACULA') {
-      setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins + 5000 }));
-      return true;
-    }
-    if (cleanCode === 'NOSFERATU') {
-      setPlayerStats(prev => ({ ...prev, level: prev.level + 1 }));
-      return true;
-    }
-    return false;
+  const unlockAchievement = useCallback((id: string) => {
+    setPlayerStats(prev => {
+      const nextAchievements = [...(prev.unlockedAchievements || [])];
+      if (!nextAchievements.includes(id)) {
+        nextAchievements.push(id);
+        const achievement = ACHIEVEMENTS.find(a => a.id === id);
+        if (achievement) {
+          setAchievementNotification(achievement);
+          setTimeout(() => setAchievementNotification(null), 5000);
+        }
+        return { ...prev, unlockedAchievements: nextAchievements };
+      }
+      return prev;
+    });
   }, []);
+
+  const setSkipLore = useCallback((skip: boolean) => {
+    setPlayerStats(prev => ({ ...prev, skipLore: skip }));
+  }, []);
+
+  const setMusicEnabled = useCallback((enabled: boolean) => {
+    setPlayerStats(prev => ({ ...prev, musicEnabled: enabled }));
+    audioService.setMusicEnabled(enabled);
+  }, []);
+
+  const setSfxEnabled = useCallback((enabled: boolean) => {
+    setPlayerStats(prev => ({ ...prev, sfxEnabled: enabled }));
+    audioService.setSfxEnabled(enabled);
+  }, []);
+
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType | null>(null);
   const [bloodyTwinFirstType, setBloodyTwinFirstType] = useState<PieceType | null>(null);
   const [comboCount, setComboCount] = useState(0);
@@ -83,15 +116,26 @@ export const useMatch3 = () => {
   const [hintPiece, setHintPiece] = useState<Position | null>(null);
   const [effects, setEffects] = useState<GridEffect[]>([]);
   const [purchasesThisLevel, setPurchasesThisLevel] = useState<Record<string, number>>({});
+  const [isSpeedRun, setIsSpeedRun] = useState(false);
+  const [speedRunCoins, setSpeedRunCoins] = useState(0);
+  const [lastSpeedRun, setLastSpeedRun] = useState<SpeedRunRecord | null>(null);
+  const [speedRunLevelIndex, setSpeedRunLevelIndex] = useState(0);
+  const [speedRunPlayerName, setSpeedRunPlayerName] = useState('');
+  const [speedRunPlayerTitle, setSpeedRunPlayerTitle] = useState('');
+  const [speedRunTimers, setSpeedRunTimers] = useState<number[]>([]);
+  const [speedRunStartTime, setSpeedRunStartTime] = useState<number>(0);
+  const [currentLevelStartTime, setCurrentLevelStartTime] = useState<number>(0);
   const lastMoveTime = useRef(Date.now());
 
   const getRelicBonus = useCallback((type: string) => {
-    return playerStats.unlockedRelics.reduce((acc, relicId) => {
+    if (isSpeedRun) return 0;
+    const relicsToUse = playerStats.unlockedRelics || [];
+    return relicsToUse.reduce((acc, relicId) => {
       const relic = RELICS.find(r => r.id === relicId);
       if (relic?.effect.type === type) return acc + relic.effect.value;
       return acc;
     }, 0);
-  }, [playerStats.unlockedRelics]);
+  }, [playerStats.unlockedRelics, isSpeedRun]);
 
   // Helper to apply gravity and refill the grid
   const applyGravityAndRefill = useCallback((currentGrid: Grid, isPowerUp: boolean = false): Grid => {
@@ -144,7 +188,7 @@ export const useMatch3 = () => {
       points *= (1 + match4Boost);
     }
 
-    const comboRelicBoost = getRelicBonus('combo_boost');
+    const comboRelicBoost = getRelicBonus('combo_points_boost');
     const comboMult = COMBO_MULTIPLIERS[Math.min(combo - 1, COMBO_MULTIPLIERS.length - 1)] + comboRelicBoost;
     points = Math.floor(points * comboMult);
 
@@ -164,22 +208,6 @@ export const useMatch3 = () => {
       console.error('Failed to save stats to localStorage', e);
     }
   }, [playerStats]);
-
-  const unlockAchievement = useCallback((id: string) => {
-    setPlayerStats(prev => {
-      const nextAchievements = [...(prev.unlockedAchievements || [])];
-      if (!nextAchievements.includes(id)) {
-        nextAchievements.push(id);
-        const achievement = ACHIEVEMENTS.find(a => a.id === id);
-        if (achievement) {
-          setAchievementNotification(achievement);
-          setTimeout(() => setAchievementNotification(null), 5000);
-        }
-        return { ...prev, unlockedAchievements: nextAchievements };
-      }
-      return prev;
-    });
-  }, []);
 
   const powerUpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -206,17 +234,27 @@ export const useMatch3 = () => {
     if (score >= 150000) {
       unlockAchievement('score_150k');
     }
+    if (score >= 200000) {
+      unlockAchievement('score_200k');
+    }
+    if (score >= 300000) {
+      unlockAchievement('score_300k');
+    }
   }, [score, unlockAchievement]);
 
   // Initialize grid and level
   const initLevel = useCallback((levelId: number) => {
-    const level = LEVELS.find(l => l.id === levelId) || LEVELS[0];
+    const level = LEVELS.find(l => l.id === levelId) || SPEEDRUN_LEVELS.find(l => l.id === levelId) || LEVELS[0];
     setCurrentLevel(level);
-    setGoals(level.goals.map(g => ({ ...g, current: 0 })));
+    
+    let targetGoals = level.goals.map(g => ({ ...g, current: 0 }));
+    setGoals(targetGoals);
     
     // Apply extra moves relic bonus
     const extraMoves = getRelicBonus('extra_moves');
-    setMoves(level.moves + Math.floor(extraMoves));
+    const baseMoves = level.moves;
+    const finalMoves = cheatMoves || (baseMoves + Math.floor(extraMoves));
+    setMoves(finalMoves);
     
     setScore(0);
     setComboCount(0);
@@ -378,7 +416,8 @@ export const useMatch3 = () => {
 
   const getPowerUpCost = useCallback((baseCost: number) => {
     const discount = getRelicBonus('shop_discount');
-    return Math.floor(baseCost * (1 - discount));
+    let cost = Math.floor(baseCost * (1 - discount));
+    return cost;
   }, [getRelicBonus]);
 
   const addEffect = useCallback((type: GridEffect['type'], pos: Position) => {
@@ -410,13 +449,34 @@ export const useMatch3 = () => {
   }, []);
 
   // Export/Import
-  const exportSave = useCallback(() => {
-    const saveData = {
-      level: playerStats.level,
-      bloodCoins: playerStats.bloodCoins,
-      unlockedRelics: playerStats.unlockedRelics,
-      language: playerStats.language,
-    };
+  const exportSave = useCallback((options: ExportOptions) => {
+    const saveData: any = {};
+    
+    if (options.ritual) {
+      saveData.level = playerStats.level;
+      saveData.bloodCoins = playerStats.bloodCoins;
+      saveData.skipLore = playerStats.skipLore;
+      saveData.language = playerStats.language;
+    }
+    
+    if (options.titles) {
+      saveData.selectedTitleId = playerStats.selectedTitleId;
+    }
+    
+    if (options.relics) {
+      saveData.unlockedRelics = playerStats.unlockedRelics;
+      saveData.earnedRelics = playerStats.earnedRelics;
+    }
+    
+    if (options.achievements) {
+      saveData.unlockedAchievements = playerStats.unlockedAchievements;
+    }
+    
+    if (options.speedruns) {
+      saveData.speedRunUnlocked = playerStats.speedRunUnlocked;
+      saveData.bestSpeedRun = playerStats.bestSpeedRun;
+    }
+
     return encrypt(JSON.stringify(saveData));
   }, [playerStats, encrypt]);
 
@@ -426,17 +486,15 @@ export const useMatch3 = () => {
       if (!decrypted) return false;
       
       const saveData = JSON.parse(decrypted);
-      if (saveData.level !== undefined && saveData.bloodCoins !== undefined) {
-        setPlayerStats(prev => ({
-          ...prev,
-          level: saveData.level,
-          bloodCoins: saveData.bloodCoins,
-          unlockedRelics: saveData.unlockedRelics || [],
-          language: saveData.language || prev.language,
-        }));
+      setPlayerStats(prev => ({
+        ...prev,
+        ...saveData
+      }));
+      
+      if (saveData.level !== undefined) {
         initLevel(saveData.level);
-        return true;
       }
+      return true;
     } catch (e) {
       console.error('Failed to import save', e);
     }
@@ -534,9 +592,14 @@ export const useMatch3 = () => {
   }, [addEffect, showPowerUpNotification]);
 
   // Process matches and gravity
-  const processMatches = useCallback(async (currentGrid: Grid, combo: number = 0) => {
+  const processMatches = useCallback(async (currentGrid: Grid, combo: number = 0, accumulatedScore: number = 0) => {
     const matches = findMatches(currentGrid);
     if (matches.length === 0) {
+      // End of sequence: transfer accumulatedScore to main score
+      if (accumulatedScore > 0) {
+        setScore(s => s + accumulatedScore);
+        setCurrentMatchScore(0);
+      }
       setIsProcessing(false);
       setComboCount(0);
       setLastComboText(null);
@@ -544,18 +607,15 @@ export const useMatch3 = () => {
     }
 
     setIsProcessing(true);
-    audioService.playSound('match');
     let currentCombo = combo;
     const nextGrid = currentGrid.map(row => [...row]);
-    let totalPoints = 0;
-    const allMatchedPieces: Piece[] = [];
+    let runningMatchScore = accumulatedScore;
     
-    // 1. Calculate scores and identify special pieces to create
-    const specialPiecesToCreate: { pos: Position, type: PieceType, specialType: SpecialType, isPowerful: boolean }[] = [];
-    const allPiecesToClearPositions = new Set<string>();
-
+    // Process matches sequentially for "calmer" visuals
     for (const match of matches) {
       currentCombo++;
+      audioService.playSound('match');
+      
       const matchCount = match.length;
       const firstPos = match[0];
       const type = nextGrid[firstPos.row][firstPos.col]?.type;
@@ -567,9 +627,10 @@ export const useMatch3 = () => {
 
       if (matchCount >= 5) unlockAchievement('match_5');
 
-      totalPoints += calculateScoreForMatch(match, nextGrid, currentCombo);
+      const matchPoints = calculateScoreForMatch(match, nextGrid, currentCombo);
 
       // Identify special piece creation
+      let specialPiece: { pos: Position, type: PieceType, specialType: SpecialType, isPowerful: boolean } | null = null;
       if (matchCount >= 4) {
         const isPowerful = matchCount >= 5 || isShape;
         let specialType: SpecialType = 'none';
@@ -581,15 +642,31 @@ export const useMatch3 = () => {
           case 'bat': specialType = 'soaked'; break;
           case 'gem': specialType = 'stained'; break;
         }
-        specialPiecesToCreate.push({ pos: firstPos, type, specialType, isPowerful });
+        specialPiece = { pos: firstPos, type, specialType, isPowerful };
       }
 
-      // Identify all pieces to clear (including chain reactions)
+      // Identify pieces to clear
       const piecesToClear: Position[] = [];
       const processedInMatch = new Set<string>();
+      const piecesClearedInThisMatch: Piece[] = [];
+
+      // Relic: clear_extra (only on first match of combo to avoid too much chaos)
+      if (currentCombo === 1) {
+        const clearExtraBonus = getRelicBonus('clear_extra');
+        if (clearExtraBonus > 0) {
+          for (let i = 0; i < clearExtraBonus; i++) {
+            const r = Math.floor(Math.random() * GRID_SIZE);
+            const c = Math.floor(Math.random() * GRID_SIZE);
+            if (!processedInMatch.has(`${r},${c}`)) {
+              piecesToClear.push({ row: r, col: c });
+              processedInMatch.add(`${r},${c}`);
+            }
+          }
+        }
+      }
 
       match.forEach(m => {
-        addPiecesToClear(m, nextGrid, piecesToClear, processedInMatch, allMatchedPieces, true);
+        addPiecesToClear(m, nextGrid, piecesToClear, processedInMatch, piecesClearedInThisMatch, true);
         
         const neighbors = [
           { row: m.row - 1, col: m.col },
@@ -601,65 +678,92 @@ export const useMatch3 = () => {
           if (n.row >= 0 && n.row < GRID_SIZE && n.col >= 0 && n.col < GRID_SIZE) {
             const neighborPiece = nextGrid[n.row][n.col];
             if (neighborPiece && neighborPiece.specialType !== 'none') {
-              addPiecesToClear(n, nextGrid, piecesToClear, processedInMatch, allMatchedPieces, true);
+              addPiecesToClear(n, nextGrid, piecesToClear, processedInMatch, piecesClearedInThisMatch, true);
             }
           }
         });
       });
 
-      piecesToClear.forEach(p => allPiecesToClearPositions.add(`${p.row},${p.col}`));
-    }
+      // Clear pieces
+      piecesToClear.forEach(p => {
+        const piece = nextGrid[p.row][p.col];
+        if (piece) {
+          piecesClearedInThisMatch.push(piece);
+          nextGrid[p.row][p.col] = null;
+        }
+      });
 
-    // 2. Actually clear the pieces and update allMatchedPieces
-    allPiecesToClearPositions.forEach(key => {
-      const [r, c] = key.split(',').map(Number);
-      const p = nextGrid[r][c];
-      if (p) {
-        allMatchedPieces.push(p);
-        nextGrid[r][c] = null;
+      // Create special piece
+      if (specialPiece && nextGrid[specialPiece.pos.row][specialPiece.pos.col] === null) {
+        nextGrid[specialPiece.pos.row][specialPiece.pos.col] = createPiece(specialPiece.pos.row, specialPiece.pos.col, specialPiece.type, specialPiece.specialType, specialPiece.isPowerful);
       }
-    });
 
-    // 3. Create new special pieces
-    specialPiecesToCreate.forEach(sp => {
-      // Only create if the spot is empty (it should be, as it was part of a match)
-      if (nextGrid[sp.pos.row][sp.pos.col] === null) {
-        nextGrid[sp.pos.row][sp.pos.col] = createPiece(sp.pos.row, sp.pos.col, sp.type, sp.specialType, sp.isPowerful);
+      setComboCount(currentCombo);
+      
+      if (currentCombo > 1) {
+        if (currentCombo >= 6) unlockAchievement('combo_x6');
+        const comboText = playerStats.language === 'pt' 
+          ? (currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
+          : (currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
+        setLastComboText(comboText);
       }
-    });
 
-    setComboCount(currentCombo);
-    
-    if (currentCombo > 1) {
-      if (currentCombo >= 6) unlockAchievement('combo_x6');
-      const comboText = playerStats.language === 'pt' 
-        ? (currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
-        : (currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
-      setLastComboText(comboText);
+      const stepScore = matchPoints + (piecesClearedInThisMatch.length * 10);
+      runningMatchScore += stepScore;
+      setCurrentMatchScore(runningMatchScore);
+      updateGoals(piecesClearedInThisMatch, score + runningMatchScore);
+      setGrid([...nextGrid]);
+
+      const maxMatchSize = Math.max(matchCount);
+      if (maxMatchSize >= 5) {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
+      }
+
+      // Wait between matches for clarity
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
-    const nextScore = score + totalPoints + (allMatchedPieces.length * 10);
-    setScore(nextScore);
-    updateGoals(allMatchedPieces, nextScore);
-    setGrid(nextGrid);
-
-    const maxMatchSize = Math.max(...matches.map(m => m.length));
-    if (maxMatchSize >= 5) {
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
+    // Relic: chain_reaction
+    const chainReactionChance = getRelicBonus('chain_reaction');
+    if (Math.random() < chainReactionChance) {
+      const r = Math.floor(Math.random() * GRID_SIZE);
+      const c = Math.floor(Math.random() * GRID_SIZE);
+      const explosionPositions: Position[] = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE) {
+            explosionPositions.push({ row: nr, col: nc });
+          }
+        }
+      }
+      
+      const explosionGrid = nextGrid.map(row => [...row]);
+      explosionPositions.forEach(p => {
+        explosionGrid[p.row][p.col] = null;
+      });
+      
+      setGrid(explosionGrid);
+      audioService.playSound('bomb');
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const refilled = applyGravityAndRefill(explosionGrid);
+      setGrid(refilled);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return processMatches(refilled, currentCombo, runningMatchScore);
     }
-
-    await new Promise(resolve => setTimeout(resolve, 300));
 
     const afterGravity = applyGravityAndRefill(nextGrid);
     setGrid(afterGravity);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    await processMatches(afterGravity, currentCombo);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await processMatches(afterGravity, currentCombo, runningMatchScore);
   }, [findMatches, score, updateGoals, getRelicBonus, playerStats.language, unlockAchievement, calculateScoreForMatch, applyGravityAndRefill, addPiecesToClear]);
 
   const swapPieces = useCallback(async (pos1: Position, pos2: Position) => {
     if (isProcessing || moves <= 0) return;
     resetHint();
+    setCurrentMatchScore(0);
 
     const nextGrid = grid.map(row => [...row]);
     const p1 = nextGrid[pos1.row][pos1.col];
@@ -699,14 +803,14 @@ export const useMatch3 = () => {
 
       setGrid(nextGrid);
       const points = (matched.length * SCORE_BASE) + (matched.length * 10);
-      setScore(s => s + points);
+      setCurrentMatchScore(points);
       updateGoals(matched, score + points);
       
       await new Promise(resolve => setTimeout(resolve, 300));
       const afterGravity = applyGravityAndRefill(nextGrid, true);
       setGrid(afterGravity);
       await new Promise(resolve => setTimeout(resolve, 300));
-      await processMatches(afterGravity);
+      await processMatches(afterGravity, 1, points);
       return;
     }
 
@@ -734,6 +838,7 @@ export const useMatch3 = () => {
   // Power-up implementations
   const usePowerUp = useCallback(async (type: PowerUpType, pos?: Position) => {
     if (isProcessing) return;
+    setCurrentMatchScore(0);
 
     let matchedPieces: Piece[] = [];
     try {
@@ -847,15 +952,14 @@ export const useMatch3 = () => {
       if (matchedPieces.length > 0) {
         setGrid(nextGrid);
         const points = (matchedPieces.length * SCORE_BASE) + (matchedPieces.length * 10);
-        const nextScore = score + points;
-        setScore(nextScore);
-        updateGoals(matchedPieces, nextScore);
+        setCurrentMatchScore(points);
+        updateGoals(matchedPieces, score + points);
         await new Promise(resolve => setTimeout(resolve, 300));
         
         const afterGravity = applyGravityAndRefill(nextGrid, true);
         setGrid(afterGravity);
         await new Promise(resolve => setTimeout(resolve, 300));
-        await processMatches(afterGravity);
+        await processMatches(afterGravity, 1, points);
       } else {
         setIsProcessing(false);
       }
@@ -913,12 +1017,22 @@ export const useMatch3 = () => {
   };
 
   const buyPowerUp = (powerUp: PowerUpType, baseCost: number) => {
-    const currentPurchases = purchasesThisLevel[powerUp] || 0;
-    if (currentPurchases >= 2) return false;
+    if (!isSpeedRun) {
+      const currentPurchases = purchasesThisLevel[powerUp] || 0;
+      const limit = 2;
+      if (currentPurchases >= limit) return false;
+    }
 
     const cost = getPowerUpCost(baseCost);
-    if (playerStats.bloodCoins >= cost) {
-      setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins - cost }));
+    const currentCoins = isSpeedRun ? speedRunCoins : playerStats.bloodCoins;
+
+    if (currentCoins >= cost) {
+      if (isSpeedRun) {
+        setSpeedRunCoins(prev => prev - cost);
+      } else {
+        setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins - cost }));
+      }
+      
       setPurchasesThisLevel(prev => ({
         ...prev,
         [powerUp]: (prev[powerUp] || 0) + 1
@@ -939,7 +1053,50 @@ export const useMatch3 = () => {
     return false;
   };
 
-  const completeLevel = () => {
+  const completeLevel = useCallback(() => {
+    const levelData = isSpeedRun ? SPEEDRUN_LEVELS[speedRunLevelIndex] : LEVELS[playerStats.level - 1];
+    const now = Date.now();
+    
+    if (isSpeedRun) {
+      const levelTime = (now - currentLevelStartTime) / 1000;
+      const nextTimers = [...speedRunTimers, levelTime];
+      setSpeedRunTimers(nextTimers);
+      
+      if (speedRunLevelIndex < SPEEDRUN_LEVELS.length - 1) {
+        const nextIdx = speedRunLevelIndex + 1;
+        setSpeedRunLevelIndex(nextIdx);
+        initLevel(SPEEDRUN_LEVELS[nextIdx].id);
+        setCurrentLevelStartTime(now);
+        return 'next_speedrun';
+      } else {
+        const totalTime = (now - speedRunStartTime) / 1000;
+        const record: SpeedRunRecord = {
+          levelTimes: nextTimers,
+          totalTime,
+          date: new Date().toISOString(),
+          playerName: speedRunPlayerName,
+          playerTitle: speedRunPlayerTitle
+        };
+        
+        setLastSpeedRun(record);
+        
+        setPlayerStats(prev => {
+          const isBetter = !prev.bestSpeedRun || totalTime < prev.bestSpeedRun.totalTime;
+          const nextRecords = [...(prev.speedRunRecords || []), record]
+            .sort((a, b) => a.totalTime - b.totalTime)
+            .slice(0, 10);
+            
+          return {
+            ...prev,
+            bestSpeedRun: isBetter ? record : prev.bestSpeedRun,
+            speedRunRecords: nextRecords
+          };
+        });
+        setIsSpeedRun(false);
+        return 'speedrun_complete';
+      }
+    }
+
     const nextLevel = playerStats.level + 1;
     let unlockedRelic: Relic | null = null;
 
@@ -954,14 +1111,32 @@ export const useMatch3 = () => {
       }
     }
 
+    const isGameComplete = playerStats.level === 100;
+
     setPlayerStats(prev => {
       const nextUnlockedRelics = unlockedRelic ? [...prev.unlockedRelics, unlockedRelic.id] : prev.unlockedRelics;
+      const nextEarnedRelics = unlockedRelic ? [...(prev.earnedRelics || []), unlockedRelic.id] : (prev.earnedRelics || []);
+      const allRelicsCollected = nextEarnedRelics.length === 10;
       
+      let rewardCoins = levelData.rewardCoins;
+
+      if (isGameComplete) {
+        unlockAchievement('game_complete');
+        return {
+          ...prev,
+          bloodCoins: prev.bloodCoins + rewardCoins,
+          unlockedRelics: nextUnlockedRelics,
+          earnedRelics: nextEarnedRelics,
+          speedRunUnlocked: true
+        };
+      }
+
       return {
         ...prev,
         level: nextLevel,
-        bloodCoins: prev.bloodCoins + currentLevel.rewardCoins,
+        bloodCoins: prev.bloodCoins + rewardCoins,
         unlockedRelics: nextUnlockedRelics,
+        earnedRelics: nextEarnedRelics
       };
     });
 
@@ -969,12 +1144,28 @@ export const useMatch3 = () => {
       unlockAchievement(`relic_${unlockedRelic.id}`);
       setNewRelicUnlocked(unlockedRelic);
     }
-  };
+
+    return isGameComplete ? 'game_complete' : 'normal_win';
+  }, [playerStats.level, isSpeedRun, speedRunLevelIndex, speedRunTimers, currentLevelStartTime, speedRunStartTime, initLevel, unlockAchievement]);
+
+  const startSpeedRun = useCallback((playerName: string, playerTitle: string) => {
+    setIsSpeedRun(true);
+    setSpeedRunPlayerName(playerName);
+    setSpeedRunPlayerTitle(playerTitle);
+    setSpeedRunCoins(1500);
+    setSpeedRunLevelIndex(0);
+    setSpeedRunTimers([]);
+    const now = Date.now();
+    setSpeedRunStartTime(now);
+    setCurrentLevelStartTime(now);
+    initLevel(SPEEDRUN_LEVELS[0].id);
+  }, [initLevel]);
 
   return {
     grid,
     score,
     moves,
+    currentMatchScore,
     isProcessing,
     selectedPiece,
     currentLevel,
@@ -994,7 +1185,6 @@ export const useMatch3 = () => {
     importSave,
     setLanguage,
     setSelectedTitle,
-    handleBloodCode,
     initLevel,
     handlePieceClick,
     getPowerUpCost,
@@ -1002,17 +1192,40 @@ export const useMatch3 = () => {
     purchasesThisLevel,
     completeLevel,
     checkWinCondition,
+    setSkipLore,
+    isSpeedRun,
+    speedRunCoins,
+    lastSpeedRun,
+    speedRunLevelIndex,
+    speedRunTimers,
+    speedRunStartTime,
+    currentLevelStartTime,
+    startSpeedRun,
+    cancelSpeedRun: () => {
+      setIsSpeedRun(false);
+      setLastSpeedRun(null);
+    },
     resetProgress: () => {
       const defaultStats: PlayerStats = {
         level: 1,
         bloodCoins: 1000,
         unlockedRelics: [],
         unlockedAchievements: [],
+        skipLore: false,
         language: playerStats.language,
+        musicEnabled: playerStats.musicEnabled,
+        sfxEnabled: playerStats.sfxEnabled,
+        speedRunUnlocked: true,
+        speedRunRecords: playerStats.speedRunRecords || [],
+        bestSpeedRun: playerStats.bestSpeedRun,
+        earnedRelics: [],
       };
       setPlayerStats(defaultStats);
+      setCheatMoves(null);
       localStorage.removeItem(STORAGE_KEY);
       initLevel(1);
     },
+    setMusicEnabled,
+    setSfxEnabled,
   };
 };

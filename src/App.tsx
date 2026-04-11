@@ -7,11 +7,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMatch3 } from './hooks/useMatch3';
 import { GridComponent } from './components/Grid';
-import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ExportModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, LowMovesWarning, FinalLoreScreen, SpeedRunStats, SpeedRunPanel, SpeedRunSetupModal } from './components/GameUI';
+import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ExportModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, LowMovesWarning, FinalLoreScreen, SpeedRunStats, SpeedRunPanel, SpeedRunSetupModal, GameplayPanel, ProgressPanel } from './components/GameUI';
 import { audioService } from './services/audioService';
 import { SinisterEffects } from './components/SinisterEffects';
 import { GameState, Language, ExportOptions } from './types';
 import { POWER_UPS } from './constants';
+
+const PARTICLES_COUNT = 20;
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('intro');
@@ -158,6 +160,24 @@ export default function App() {
         <div className="absolute inset-0 opacity-20 mix-blend-overlay">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
         </div>
+        <div className="mist-container">
+          <div className="mist" />
+        </div>
+        <div className="particles-container">
+          {Array.from({ length: PARTICLES_COUNT }).map((_, i) => (
+            <div 
+              key={i} 
+              className="particle" 
+              style={{ 
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 4 + 1}px`,
+                height: `${Math.random() * 4 + 1}px`,
+                '--duration': `${Math.random() * 10 + 10}s`,
+                animationDelay: `${Math.random() * 10}s`
+              } as any} 
+            />
+          ))}
+        </div>
       </div>
 
       {/* Sinister Visual Effects */}
@@ -256,7 +276,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="z-10 flex flex-col items-center w-full max-w-full px-4 py-2 relative overflow-hidden"
           >
-            <div className="relative z-10 w-full flex flex-col items-center">
+            <div className="relative z-10 w-full flex flex-col items-center gap-4">
               <HUD 
                 score={score} 
                 currentMatchScore={currentMatchScore}
@@ -273,28 +293,24 @@ export default function App() {
                 speedRunLevelIndex={speedRunLevelIndex}
                 currentLevelTime={currentLevelTime}
                 totalSpeedRunTime={totalSpeedRunTime}
+                speedRunCoins={speedRunCoins}
               />
               
-              <div className="relative flex items-center justify-center gap-8 w-full">
-                {/* Side Score Counter */}
-                <div className="flex flex-col items-center justify-center w-40 h-80 p-4 relative overflow-hidden">
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-red-500/50 font-bold mb-4 text-center">
-                    {playerStats.language === 'pt' ? 'Combo Atual' : 'Current Combo'}
-                  </span>
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentMatchScore}
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 1.5, opacity: 0 }}
-                      className="text-4xl font-black text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]"
-                    >
-                      {currentMatchScore.toLocaleString()}
-                    </motion.div>
-                  </AnimatePresence>
+              <div className="flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full max-w-[1600px]">
+                {/* Left Panel: Gameplay Info */}
+                <div className="w-full xl:w-80 mt-4 xl:mt-8 order-2 xl:order-1">
+                  <GameplayPanel 
+                    goals={goals} 
+                    playerStats={playerStats} 
+                    score={score}
+                    currentMatchScore={currentMatchScore}
+                    comboCount={comboCount}
+                    isSpeedRun={isSpeedRun}
+                  />
                 </div>
 
-                <div className="relative">
+                {/* Center: Grid */}
+                <div className="relative flex-1 flex justify-center order-1 xl:order-2">
                   <GridComponent
                     grid={grid}
                     selectedPiece={selectedPiece}
@@ -314,8 +330,8 @@ export default function App() {
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
                       >
-                        <div className="bg-red-600/20 backdrop-blur-sm border-4 border-red-600 rounded-3xl inset-0 absolute animate-pulse" />
-                        <div className="bg-black/60 px-6 py-3 rounded-full border border-red-500 text-red-500 font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+                        <div className="bg-red-600/20 backdrop-blur-sm border-4 border-red-600 rounded-[40px] inset-8 absolute animate-pulse" />
+                        <div className="bg-black/80 px-6 py-3 rounded-full border border-red-500 text-red-500 font-black uppercase tracking-[0.3em] text-sm shadow-[0_0_30px_rgba(220,38,38,0.6)]">
                           {(() => {
                             const pu = POWER_UPS.find(p => p.type === activePowerUp);
                             const name = pu ? (pu.name[playerStats.language] || pu.name['en']) : activePowerUp;
@@ -327,15 +343,26 @@ export default function App() {
                   </AnimatePresence>
                 </div>
 
-                {/* Speed Run Times Panel */}
-                {isSpeedRun && (
-                  <SpeedRunPanel 
-                    levelTimes={speedRunTimers}
-                    currentLevelTime={currentLevelTime}
-                    speedRunLevelIndex={speedRunLevelIndex}
-                    language={playerStats.language}
+                {/* Right Panel: Progress Info */}
+                <div className="w-full xl:w-80 flex flex-col gap-6 mt-4 xl:mt-8 order-3">
+                  <ProgressPanel 
+                    goals={goals} 
+                    playerStats={playerStats} 
+                    score={score}
+                    currentMatchScore={currentMatchScore}
+                    comboCount={comboCount}
+                    isSpeedRun={isSpeedRun}
                   />
-                )}
+                  
+                  {isSpeedRun && (
+                    <SpeedRunPanel 
+                      levelTimes={speedRunTimers}
+                      currentLevelTime={currentLevelTime}
+                      speedRunLevelIndex={speedRunLevelIndex}
+                      language={playerStats.language}
+                    />
+                  )}
+                </div>
               </div>
             </div>
             
@@ -411,6 +438,7 @@ export default function App() {
         onBuy={buyPowerUp}
         getPowerUpCost={getPowerUpCost}
         purchases={purchasesThisLevel}
+        isSpeedRun={isSpeedRun}
       />
 
       <OptionsModal

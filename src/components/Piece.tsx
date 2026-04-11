@@ -45,7 +45,7 @@ export const PieceComponent = ({ type, isSelected, isHint, isProcessing, special
       onClick={onClick}
       className={`
         relative w-full h-full flex items-center justify-center cursor-pointer
-        rounded-xl border-2 transition-colors duration-200
+        rounded-xl border-2 transition-colors duration-200 icon-bright
         ${isPowerful ? 'bg-purple-900/40' : (isSpecial ? 'bg-red-900/20' : 'bg-black/40')}
         backdrop-blur-sm
       `}

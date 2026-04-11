@@ -301,9 +301,8 @@ export const useMatch3 = () => {
   // Find matches with shape detection
   const findMatches = useCallback((currentGrid: Grid) => {
     const matches: Position[][] = [];
-    const matchedIds = new Set<string>();
 
-    // Horizontal
+    // Horizontal detection
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE - 2; c++) {
         const p1 = currentGrid[r][c];
@@ -322,7 +321,7 @@ export const useMatch3 = () => {
       }
     }
 
-    // Vertical
+    // Vertical detection
     for (let c = 0; c < GRID_SIZE; c++) {
       for (let r = 0; r < GRID_SIZE - 2; r++) {
         const p1 = currentGrid[r][c];
@@ -341,25 +340,37 @@ export const useMatch3 = () => {
       }
     }
 
-    // Merge overlapping matches to detect L/T shapes
+    if (matches.length === 0) return [];
+
+    // Optimize merging overlapping matches (L/T shapes)
     const mergedMatches: Position[][] = [];
     const matchMap = new Map<string, number>();
 
-    matches.forEach((match, idx) => {
-      let merged = false;
+    matches.forEach((match) => {
+      let existingIdx: number | undefined;
+      
       for (const pos of match) {
         const key = `${pos.row},${pos.col}`;
         if (matchMap.has(key)) {
-          const existingIdx = matchMap.get(key)!;
-          mergedMatches[existingIdx] = Array.from(new Set([...mergedMatches[existingIdx], ...match].map(p => JSON.stringify(p)))).map(s => JSON.parse(s));
-          match.forEach(p => matchMap.set(`${p.row},${p.col}`, existingIdx));
-          merged = true;
+          existingIdx = matchMap.get(key);
           break;
         }
       }
-      if (!merged) {
+
+      if (existingIdx !== undefined) {
+        const targetMatch = mergedMatches[existingIdx];
+        const existingKeys = new Set(targetMatch.map(p => `${p.row},${p.col}`));
+        
+        match.forEach(p => {
+          const key = `${p.row},${p.col}`;
+          if (!existingKeys.has(key)) {
+            targetMatch.push(p);
+            matchMap.set(key, existingIdx!);
+          }
+        });
+      } else {
         const newIdx = mergedMatches.length;
-        mergedMatches.push(match);
+        mergedMatches.push([...match]);
         match.forEach(p => matchMap.set(`${p.row},${p.col}`, newIdx));
       }
     });
@@ -851,15 +862,17 @@ export const useMatch3 = () => {
       if (pu) {
         const colors: Record<string, string> = {
           bomb: '#ef4444', arrow: '#f97316', steps: '#22c55e', chaos: '#a855f7', 
-          hammer: '#3b82f6', soaked: '#dc2626', stained: '#991b1b', bloody_twin: '#7f1d1d'
+          soaked: '#dc2626', stained: '#991b1b', bloody_twin: '#7f1d1d'
         };
         showPowerUpNotification(pu.name, colors[type] || '#ef4444');
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       switch (type) {
         case 'bomb':
           if (!pos) break;
+          addEffect('bomb', pos);
+          audioService.playSound('bomb');
           for (let r = pos.row - 1; r <= pos.row + 1; r++) {
             for (let c = pos.col - 1; c <= pos.col + 1; c++) {
               if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
@@ -870,9 +883,45 @@ export const useMatch3 = () => {
           break;
         case 'arrow':
           if (!pos) break;
-          for (let i = 0; i < GRID_SIZE; i++) {
-            addPiecesToClear({ row: pos.row, col: i }, nextGrid, piecesToClear, processed, matchedPieces);
-            addPiecesToClear({ row: i, col: pos.col }, nextGrid, piecesToClear, processed, matchedPieces);
+          audioService.playSound('lightning');
+          // Sanguine Arrows: destroys pieces in a cross pattern (+) from the center
+          // Sweep outwards for visual impact
+          const maxDist = Math.max(pos.row, pos.col, GRID_SIZE - 1 - pos.row, GRID_SIZE - 1 - pos.col);
+          for (let dist = 0; dist <= maxDist; dist++) {
+            let clearedInThisStep = false;
+            const stepPositions = [
+              { row: pos.row, col: pos.col + dist },
+              { row: pos.row, col: pos.col - dist },
+              { row: pos.row + dist, col: pos.col },
+              { row: pos.row - dist, col: pos.col }
+            ];
+            
+            for (const p of stepPositions) {
+              if (p.row >= 0 && p.row < GRID_SIZE && p.col >= 0 && p.col < GRID_SIZE) {
+                if (!processed.has(`${p.row},${p.col}`)) {
+                  const tempPositions: Position[] = [];
+                  addPiecesToClear(p, nextGrid, tempPositions, processed, matchedPieces);
+                  
+                  tempPositions.forEach(m => {
+                    const piece = nextGrid[m.row][m.col];
+                    if (piece) {
+                      matchedPieces.push(piece);
+                      nextGrid[m.row][m.col] = null;
+                    }
+                  });
+                  
+                  if (tempPositions.length > 0) {
+                    addEffect(p.row === pos.row ? 'arrow-h' : 'arrow-v', p);
+                    clearedInThisStep = true;
+                  }
+                }
+              }
+            }
+            
+            if (clearedInThisStep) {
+              setGrid([...nextGrid]);
+              await new Promise(resolve => setTimeout(resolve, 60));
+            }
           }
           break;
         case 'steps':
@@ -881,24 +930,46 @@ export const useMatch3 = () => {
           setActivePowerUp(null);
           return;
         case 'chaos':
-          const positions: Position[] = [];
+          const allPositions: Position[] = [];
           for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
-              positions.push({ row: r, col: c });
+              allPositions.push({ row: r, col: c });
             }
           }
+          
+          // Select 10 random positions
+          const targets: Position[] = [];
           for (let i = 0; i < 10; i++) {
-            if (positions.length === 0) break;
-            const idx = Math.floor(Math.random() * positions.length);
-            const p = positions.splice(idx, 1)[0];
-            addPiecesToClear(p, nextGrid, piecesToClear, processed, matchedPieces);
+            if (allPositions.length === 0) break;
+            const idx = Math.floor(Math.random() * allPositions.length);
+            targets.push(allPositions.splice(idx, 1)[0]);
+          }
+
+          for (const p of targets) {
+            // If already cleared by a previous explosion in this sequence, skip
+            if (processed.has(`${p.row},${p.col}`)) continue;
+
+            addEffect('bomb', p); // Blood explosion effect
+            audioService.playSound('bomb');
+            
+            const tempPositions: Position[] = [];
+            addPiecesToClear(p, nextGrid, tempPositions, processed, matchedPieces);
+            
+            tempPositions.forEach(m => {
+              const piece = nextGrid[m.row][m.col];
+              if (piece) {
+                matchedPieces.push(piece);
+                nextGrid[m.row][m.col] = null;
+              }
+            });
+            
+            setGrid([...nextGrid]);
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
           break;
-        case 'hammer':
-          if (!pos) break;
-          addPiecesToClear(pos, nextGrid, piecesToClear, processed, matchedPieces, true);
-          break;
         case 'soaked':
+          addEffect('soaked', { row: 0, col: 0 });
+          audioService.playSound('bubble');
           for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
               addPiecesToClear({ row: r, col: c }, nextGrid, piecesToClear, processed, matchedPieces);
@@ -909,6 +980,8 @@ export const useMatch3 = () => {
           if (!pos) break;
           const targetType = nextGrid[pos.row][pos.col]?.type;
           if (targetType) {
+            addEffect('stained', pos);
+            audioService.playSound('bubble');
             for (let r = 0; r < GRID_SIZE; r++) {
               for (let c = 0; c < GRID_SIZE; c++) {
                 if (nextGrid[r][c]?.type === targetType) {
@@ -981,7 +1054,7 @@ export const useMatch3 = () => {
     resetHint();
 
     if (activePowerUp) {
-      if (['bomb', 'arrow', 'hammer', 'stained'].includes(activePowerUp)) {
+      if (['bomb', 'arrow', 'stained'].includes(activePowerUp)) {
         usePowerUp(activePowerUp, { row, col });
         return;
       }
@@ -1097,12 +1170,14 @@ export const useMatch3 = () => {
       }
     }
 
-    const nextLevel = playerStats.level + 1;
+    const currentLevelNum = playerStats.level;
+    const nextLevelNum = currentLevelNum + 1;
     let unlockedRelic: Relic | null = null;
 
-    // Relic unlock every 10 levels
-    if (nextLevel % 10 === 1 && nextLevel > 1) {
-      const relicIndex = Math.floor((nextLevel - 1) / 10) - 1;
+    // Relic unlock strictly every 10 levels (10, 20, 30...)
+    // We check if the level we just finished is a multiple of 10
+    if (currentLevelNum % 10 === 0) {
+      const relicIndex = (currentLevelNum / 10) - 1;
       if (relicIndex >= 0 && relicIndex < RELICS.length) {
         const relic = RELICS[relicIndex];
         if (!playerStats.unlockedRelics.includes(relic.id)) {
@@ -1116,7 +1191,6 @@ export const useMatch3 = () => {
     setPlayerStats(prev => {
       const nextUnlockedRelics = unlockedRelic ? [...prev.unlockedRelics, unlockedRelic.id] : prev.unlockedRelics;
       const nextEarnedRelics = unlockedRelic ? [...(prev.earnedRelics || []), unlockedRelic.id] : (prev.earnedRelics || []);
-      const allRelicsCollected = nextEarnedRelics.length === 10;
       
       let rewardCoins = levelData.rewardCoins;
 
@@ -1133,7 +1207,7 @@ export const useMatch3 = () => {
 
       return {
         ...prev,
-        level: nextLevel,
+        level: nextLevelNum,
         bloodCoins: prev.bloodCoins + rewardCoins,
         unlockedRelics: nextUnlockedRelics,
         earnedRelics: nextEarnedRelics
@@ -1146,7 +1220,7 @@ export const useMatch3 = () => {
     }
 
     return isGameComplete ? 'game_complete' : 'normal_win';
-  }, [playerStats.level, isSpeedRun, speedRunLevelIndex, speedRunTimers, currentLevelStartTime, speedRunStartTime, initLevel, unlockAchievement]);
+  }, [playerStats.level, playerStats.unlockedRelics, isSpeedRun, speedRunLevelIndex, speedRunTimers, currentLevelStartTime, speedRunStartTime, initLevel, unlockAchievement]);
 
   const startSpeedRun = useCallback((playerName: string, playerTitle: string) => {
     setIsSpeedRun(true);

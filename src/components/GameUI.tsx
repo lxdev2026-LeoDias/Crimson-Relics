@@ -13,6 +13,35 @@ const ACHIEVEMENT_ICONS: Record<string, any> = {
   CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Medal, Zap, Flame, Skull, Trophy, Star
 };
 
+const BloodSea = () => (
+  <div className="blood-sea-container">
+    <div className="blood-sea" />
+    {Array.from({ length: 15 }).map((_, i) => (
+      <div 
+        key={i} 
+        className="blood-bubble" 
+        style={{ 
+          left: `${Math.random() * 100}%`,
+          width: `${Math.random() * 10 + 5}px`,
+          height: `${Math.random() * 10 + 5}px`,
+          '--duration': `${Math.random() * 2 + 1}s`,
+          '--delay': `${Math.random() * 5}s`
+        } as any} 
+      />
+    ))}
+  </div>
+);
+
+const FlamingSkull = ({ size, isWarning }: { size: number, isWarning: boolean }) => (
+  <div className="relative flex items-center justify-center">
+    <Skull size={size} className={isWarning ? 'text-red-500' : 'text-zinc-500'} />
+    {/* Precisely positioned eyes within the Lucide Skull icon sockets */}
+    <div className="absolute top-[42%] left-[29%] w-[14%] h-[14%] rounded-full blur-[1px] flaming-eye shadow-[0_0_10px_#ff0000] z-10" />
+    <div className="absolute top-[42%] right-[29%] w-[14%] h-[14%] rounded-full blur-[1px] flaming-eye shadow-[0_0_10px_#ff0000] z-10" />
+    <div className="absolute inset-0 bg-red-600/5 blur-xl rounded-full animate-pulse" />
+  </div>
+);
+
 interface HUDProps {
   score: number;
   currentMatchScore: number;
@@ -26,7 +55,7 @@ interface HUDProps {
   speedRunLevelIndex?: number;
   currentLevelTime?: number;
   totalSpeedRunTime?: number;
-  isHardcore?: boolean;
+  speedRunCoins?: number;
 }
 
 const t = (str: LocalizedString | string, lang: Language) => {
@@ -46,7 +75,8 @@ export const HUD = ({
   isSpeedRun,
   speedRunLevelIndex,
   currentLevelTime,
-  totalSpeedRunTime
+  totalSpeedRunTime,
+  speedRunCoins
 }: HUDProps) => {
   const lang = playerStats.language;
   const [isTitleSelectorOpen, setIsTitleSelectorOpen] = useState(false);
@@ -55,205 +85,261 @@ export const HUD = ({
   const currentTitle = unlockedTitles.find(a => a.id === playerStats.selectedTitleId) || unlockedTitles[0];
 
   return (
-    <div className="flex flex-col w-full max-w-full gap-4 mb-2 relative p-4 bg-zinc-950/40 rounded-[32px] border border-red-900/10 backdrop-blur-sm">
+    <div className="flex flex-col w-full max-w-5xl gap-2 mb-2 relative z-50 p-3 bg-zinc-950/70 rounded-full border border-red-900/30 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.6)]">
       {/* Decorative Top Border */}
-      <div className="absolute -top-4 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-900/50 to-transparent" />
+      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
       
-      {/* Speedrun Timers - Moved to top left to avoid title conflict */}
+      {/* Speedrun Timers - Compacted */}
       {isSpeedRun && currentLevelTime !== undefined && totalSpeedRunTime !== undefined && (
         <motion.div 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="absolute -top-12 left-0 flex items-center gap-4 bg-yellow-900/40 px-4 py-2 rounded-2xl border border-yellow-600/30 backdrop-blur-md z-50 shadow-[0_0_20px_rgba(202,138,4,0.2)]"
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-5 bg-black/90 px-4 py-1 rounded-full border border-yellow-600/40 backdrop-blur-xl z-50 shadow-[0_0_20px_rgba(202,138,4,0.2)]"
         >
-          <div className="flex flex-col items-center">
-            <span className="text-[8px] uppercase tracking-widest text-yellow-500/70 font-bold">{lang === 'pt' ? 'Tempo Fase' : 'Stage Time'}</span>
-            <span className="text-sm font-mono font-black text-yellow-500">{currentLevelTime.toFixed(1)}s</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] uppercase tracking-widest text-yellow-500/80 font-black">{lang === 'pt' ? 'Fase' : 'Stage'}</span>
+            <span className="text-[10px] font-mono font-black text-yellow-500">{currentLevelTime.toFixed(1)}s</span>
           </div>
-          <div className="w-[1px] h-8 bg-yellow-600/30" />
-          <div className="flex flex-col items-center">
-            <span className="text-[8px] uppercase tracking-widest text-yellow-500/70 font-bold">{lang === 'pt' ? 'Tempo Total' : 'Total Time'}</span>
-            <span className="text-sm font-mono font-black text-yellow-500">{totalSpeedRunTime.toFixed(1)}s</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] uppercase tracking-widest text-yellow-500/80 font-black">{lang === 'pt' ? 'Total' : 'Total'}</span>
+            <span className="text-[10px] font-mono font-black text-yellow-500">{totalSpeedRunTime.toFixed(1)}s</span>
           </div>
         </motion.div>
       )}
 
-      {/* Top Bar with Back Button and Stats */}
-      <div className="flex justify-between items-center gap-4">
+      {/* Compact Top Bar */}
+      <div className="flex justify-between items-center gap-6 px-4">
         <button 
           onClick={() => {
             audioService.playSound('click');
             onBackToMenu();
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-[var(--color-secondary)]/40 rounded-full border border-[var(--color-secondary)]/20 text-[var(--color-primary)] text-xs uppercase tracking-widest transition-all"
+          className="flex items-center gap-2 px-8 py-4 bg-red-500/90 hover:bg-red-400 rounded-full border-2 border-red-400/50 text-white text-base uppercase tracking-[0.2em] transition-all font-black shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:scale-105 active:scale-95"
         >
-          <ArrowLeft size={14} />
-          Menu
+          <ArrowLeft size={18} />
+          {lang === 'pt' ? 'Menu' : 'Menu'}
         </button>
 
-        <div className="flex-1 flex justify-between items-center px-4 py-1 relative z-20">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <Trophy className="text-[var(--color-primary)]" size={16} />
-                <span className="text-sm font-bold uppercase tracking-widest text-white">
-                  {isSpeedRun ? `${lang === 'pt' ? 'Fase' : 'Stage'} ${(speedRunLevelIndex || 0) + 1}` : `Ritual ${playerStats.level}`}
-                </span>
-              </div>
-              {/* Relic Progress Bar */}
-              {!isSpeedRun && (
-                <div className="mt-1 w-full h-1 bg-black/60 rounded-full overflow-hidden border border-[var(--color-secondary)]/20">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${((playerStats.level - 1) % 10) * 10}%` }}
-                    className="h-full bg-[var(--color-primary)] shadow-[0_0_10px_rgba(220,38,38,0.5)]"
-                  />
-                </div>
-              )}
+        <div className="flex items-center gap-10">
+          {/* Ritual Level */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-4">
+              <Sword className="text-red-500" size={34} />
+              <span className="text-3xl font-black uppercase tracking-[0.4em] text-zinc-100 drop-shadow-[0_0_12px_rgba(220,38,38,0.5)]">
+                {isSpeedRun ? `${lang === 'pt' ? 'Fase' : 'Stage'} ${(speedRunLevelIndex || 0) + 1}` : `Ritual ${playerStats.level}`}
+              </span>
             </div>
-          </div>
-
-          {/* Player Title Section */}
-          {unlockedTitles.length > 0 && (
-            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
-              <button 
-                onClick={() => {
-                  if (unlockedTitles.length > 1) {
-                    audioService.playSound('click');
-                    setIsTitleSelectorOpen(!isTitleSelectorOpen);
-                  }
-                }}
-                className={`flex flex-col items-center group ${unlockedTitles.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                <span className="text-[8px] uppercase tracking-[0.3em] text-[var(--color-primary)]/50 font-bold">
-                  {lang === 'pt' ? 'Título' : 'Title'}
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-black text-red-400 uppercase tracking-widest group-hover:text-red-300 transition-colors">
+            {/* Player Title */}
+            {unlockedTitles.length > 0 && (
+              <div className="relative mt-1">
+                <button 
+                  onClick={() => {
+                    if (unlockedTitles.length > 1) {
+                      audioService.playSound('click');
+                      setIsTitleSelectorOpen(!isTitleSelectorOpen);
+                    }
+                  }}
+                  className={`flex items-center gap-2 group ${unlockedTitles.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
+                >
+                  <span className="text-sm font-black text-red-500 uppercase tracking-[0.3em] group-hover:text-red-400 transition-colors">
                     {currentTitle ? t(currentTitle.title, lang) : '---'}
                   </span>
-                  {unlockedTitles.length > 1 && <ChevronRight size={10} className={`text-red-500/50 transition-transform ${isTitleSelectorOpen ? 'rotate-90' : ''}`} />}
-                </div>
-              </button>
+                  {unlockedTitles.length > 1 && <ChevronRight size={14} className={`text-red-600/40 transition-transform ${isTitleSelectorOpen ? 'rotate-90' : ''}`} />}
+                </button>
 
-              <AnimatePresence>
-                {isTitleSelectorOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full mt-2 z-[100] bg-zinc-900 border border-red-900/50 rounded-xl p-2 shadow-[0_0_30px_rgba(0,0,0,0.8)] min-w-[150px] max-h-[200px] overflow-y-auto"
-                  >
-                    {unlockedTitles.map(title => (
-                      <button
-                        key={title.id}
-                        onClick={() => {
-                          audioService.playSound('click');
-                          onSelectTitle(title.id);
-                          setIsTitleSelectorOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-[10px] uppercase tracking-widest transition-colors ${
-                          playerStats.selectedTitleId === title.id 
-                            ? 'bg-red-900/40 text-white font-bold' 
-                            : 'text-zinc-500 hover:bg-red-900/20 hover:text-red-300'
-                        }`}
+                <AnimatePresence>
+                  {isTitleSelectorOpen && (
+                    <>
+                      {/* Backdrop to close on outside click and ensure priority */}
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsTitleSelectorOpen(false)}
+                        className="fixed inset-0 z-[1999] bg-black/40 backdrop-blur-sm"
+                      />
+                      
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: -20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        className="absolute top-full mt-6 left-1/2 -translate-x-1/2 z-[2000] bg-zinc-950 border-2 border-red-600/50 rounded-[2rem] p-6 shadow-[0_0_80px_rgba(0,0,0,1),0_0_30px_rgba(220,38,38,0.3)] min-w-[320px] max-h-[400px] overflow-y-auto backdrop-blur-3xl title-selector-overlay"
                       >
-                        {t(title.title, lang)}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-          
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Coins className="text-red-500" size={16} />
-              <span className="text-sm font-bold text-white tabular-nums">{playerStats.bloodCoins}</span>
-            </div>
+                        <div className="flex flex-col gap-3">
+                          <div className="text-[10px] uppercase tracking-[0.4em] text-red-500 font-black mb-2 text-center border-b border-red-900/30 pb-3">
+                            {lang === 'pt' ? 'Escolha seu Título' : 'Choose your Title'}
+                          </div>
+                          {unlockedTitles.map(title => (
+                            <motion.button
+                              key={title.id}
+                              whileHover={{ scale: 1.02, x: 5 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                audioService.playSound('click');
+                                onSelectTitle(title.id);
+                                setIsTitleSelectorOpen(false);
+                              }}
+                              className={`w-full text-left px-5 py-4 rounded-2xl text-xs uppercase tracking-[0.2em] transition-all border ${
+                                playerStats.selectedTitleId === title.id 
+                                  ? 'bg-red-600 text-white font-black border-red-400 shadow-[0_0_20px_rgba(220,38,38,0.4)]' 
+                                  : 'text-zinc-400 border-zinc-800/50 hover:bg-red-900/40 hover:text-red-300 hover:border-red-900/60'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{t(title.title, lang)}</span>
+                                {playerStats.selectedTitleId === title.id && <Check size={14} />}
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-8">
+          {/* Steps */}
+          <div className="flex items-center gap-4 bg-black/60 px-5 py-2.5 rounded-3xl border border-red-900/40 shadow-[inset_0_0_12px_rgba(0,0,0,0.8)]">
+            <span className={`text-3xl font-black tabular-nums ${moves <= 5 ? 'text-red-500 animate-pulse' : 'text-zinc-100'}`}>
+              {moves}
+            </span>
+            <FlamingSkull size={64} isWarning={moves <= 5} />
+          </div>
+
+          {/* Coins */}
+          <div className="flex items-center gap-3 bg-black/70 px-4 py-2 rounded-full border border-red-900/40 shadow-[inset_0_0_10px_rgba(0,0,0,0.6)]">
+            <Coins className="text-red-500" size={18} />
+            <span className="text-base font-black text-zinc-100 tabular-nums">
+              {isSpeedRun ? speedRunCoins : playerStats.bloodCoins}
+            </span>
             <button 
               onClick={() => {
                 audioService.playSound('click');
                 onOpenShop();
               }}
-              className="p-1.5 hover:bg-red-900/30 rounded-full transition-colors text-red-400"
+              className="ml-2 p-1 hover:bg-red-900/50 rounded-full transition-all text-red-500 hover:scale-110 active:scale-95"
             >
-              <ShoppingCart size={20} />
+              <ShoppingCart size={18} />
             </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Main Stats */}
-      <div className="flex justify-between items-center px-4 py-2 relative">
-        <div className="flex flex-col items-start">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-red-500/70 font-semibold mb-1">
-            {lang === 'pt' ? 'Essência de Sangue' : 'Blood Essence'}
+interface SidePanelProps {
+  goals: LevelGoal[];
+  playerStats: PlayerStats;
+  score: number;
+  currentMatchScore: number;
+  comboCount: number;
+  isSpeedRun?: boolean;
+}
+
+export const GameplayPanel = ({ goals, playerStats }: SidePanelProps) => {
+  const lang = playerStats.language;
+  
+  return (
+    <div className="flex flex-col gap-8 w-80 h-[600px] p-8 bg-zinc-950/60 rounded-[3rem] border border-red-900/40 backdrop-blur-xl card-glow relative overflow-hidden">
+      <div className="space-y-6 relative z-10">
+        <div className="flex items-center gap-4 border-b border-red-900/40 pb-4">
+          <Target size={24} className="text-red-500" />
+          <span className="text-sm uppercase tracking-[0.4em] text-red-500 font-black">
+            {lang === 'pt' ? 'Objetivos' : 'Objectives'}
           </span>
-          <div className="flex items-center gap-3">
-            <FlaskConical className="text-red-500 animate-pulse" size={20} />
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-white tabular-nums drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">{score.toLocaleString()}</span>
-              <AnimatePresence>
-                {currentMatchScore > 0 && (
-                  <motion.span
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 2, y: -50, color: '#ff0000' }}
-                    className="text-sm font-bold text-red-500 tabular-nums absolute -bottom-5"
-                  >
-                    +{currentMatchScore.toLocaleString()}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
         </div>
-
-        {/* Goals Display */}
-        <div className="flex gap-4 items-center px-4 py-2">
-          <Target size={14} className="text-red-500/50" />
+        <div className="space-y-6">
           {goals.map((goal, idx) => {
             const Config = goal.type === 'score' ? { icon: Star, color: '#eab308' } : PIECE_CONFIG[goal.type as keyof typeof PIECE_CONFIG];
             const Icon = Config.icon;
             const isComplete = goal.current >= goal.target;
+            const progress = Math.min(100, (goal.current / goal.target) * 100);
             
             return (
-              <div key={idx} className="flex items-center gap-2">
-                <Icon size={16} color={isComplete ? '#22c55e' : Config.color} />
-                <span className={`text-sm font-bold tabular-nums ${isComplete ? 'text-green-500' : 'text-white'}`}>
-                  {goal.type === 'score' ? `${Math.floor(goal.current/1000)}k/${Math.floor(goal.target/1000)}k` : `${goal.current}/${goal.target}`}
-                </span>
+              <div key={idx} className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <Icon size={20} color={isComplete ? '#22c55e' : Config.color} className={isComplete ? '' : 'icon-bright'} />
+                    <span className={`text-sm font-black uppercase tracking-widest ${isComplete ? 'text-green-500' : 'text-zinc-200'}`}>
+                      {goal.type === 'score' ? (lang === 'pt' ? 'Pontos' : 'Score') : (lang === 'pt' ? 'Essência' : 'Essence')}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-mono font-black ${isComplete ? 'text-green-500' : 'text-zinc-100'}`}>
+                    {goal.type === 'score' ? `${Math.floor(goal.current/1000)}k/${Math.floor(goal.target/1000)}k` : `${goal.current}/${goal.target}`}
+                  </span>
+                </div>
+                <div className="h-2 bg-black/80 rounded-full overflow-hidden border border-red-900/30 p-[1px]">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    className={`h-full rounded-full progress-glow ${isComplete ? 'bg-green-500' : 'bg-red-600'} shadow-[0_0_20px_rgba(220,38,38,0.5)]`}
+                  />
+                </div>
               </div>
             );
           })}
         </div>
-        
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-red-500/70 font-semibold mb-1">
-            {lang === 'pt' ? 'Passos Ritualísticos' : 'Ritual Steps'}
+      </div>
+
+      <BloodSea />
+    </div>
+  );
+};
+
+export const ProgressPanel = ({ score, playerStats }: SidePanelProps) => {
+  const lang = playerStats.language;
+  const progressToRelic = ((playerStats.level - 1) % 10) * 10;
+
+  return (
+    <div className="flex flex-col gap-8 w-80 h-[600px] p-8 bg-zinc-950/60 rounded-[3rem] border border-red-900/40 backdrop-blur-xl card-glow relative overflow-hidden">
+      <div className="space-y-6 relative z-10">
+        <div className="flex items-center gap-4 border-b border-red-900/40 pb-4">
+          <Droplet size={24} className="text-red-500" />
+          <span className="text-sm uppercase tracking-[0.4em] text-red-500 font-black">
+            {lang === 'pt' ? 'Essência Coletada' : 'Essence Collected'}
           </span>
-          <div className="flex items-center gap-3">
-            <span className={`text-2xl font-bold tabular-nums ${moves <= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-              {moves}
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-5xl font-black text-zinc-100 tabular-nums drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
+            {score.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-6 relative z-10">
+        <div className="flex items-center gap-4 border-b border-red-900/40 pb-4">
+          <Hourglass size={24} className="text-red-500" />
+          <span className="text-sm uppercase tracking-[0.4em] text-red-500 font-black">
+            {lang === 'pt' ? 'Progresso do Ritual' : 'Ritual Progress'}
+          </span>
+        </div>
+        <div className="space-y-4">
+          <div className="flex justify-between text-xs uppercase tracking-widest text-zinc-400 font-black">
+            <span>{lang === 'pt' ? 'Ritual' : 'Ritual'} {playerStats.level}</span>
+            <span>{lang === 'pt' ? 'Próxima Relíquia' : 'Next Relic'}</span>
+          </div>
+          <div className="h-3 bg-black/80 rounded-full overflow-hidden border border-red-900/40 p-[1px]">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progressToRelic}%` }}
+              className="h-full bg-gradient-to-r from-red-900 to-red-500 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] progress-glow"
+            />
+          </div>
+          <div className="text-center">
+            <span className="text-sm font-black text-red-500 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+              {progressToRelic}%
             </span>
-            <div className="relative">
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 0.8, 0.5],
-                }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                className="absolute inset-0 text-orange-600 blur-[2px]"
-              >
-                <Flame size={20} fill="currentColor" />
-              </motion.div>
-              <Skull className={`relative z-10 ${moves <= 5 ? 'text-red-500' : 'text-gray-500'}`} size={20} />
-            </div>
           </div>
         </div>
       </div>
+
+      <BloodSea />
     </div>
   );
 };
@@ -266,7 +352,7 @@ interface ShopProps {
   onBuy: (type: PowerUpType, cost: number) => boolean;
   getPowerUpCost: (baseCost: number) => number;
   purchases: Record<string, number>;
-  isHardcore?: boolean;
+  isSpeedRun?: boolean;
 }
 
 export const FinalLoreScreen = ({ onStart, language }: ScreenProps) => {
@@ -433,7 +519,7 @@ export const SpeedRunStats = ({ lastSpeedRun, speedRunRecords = [], language, on
   );
 };
 
-export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpCost, purchases }: ShopProps) => {
+export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpCost, purchases, isSpeedRun }: ShopProps) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -465,8 +551,8 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
               {POWER_UPS.map((pu) => {
                 const discountedCost = getPowerUpCost(pu.cost);
                 const purchaseCount = purchases[pu.type] || 0;
-                const limit = 2;
-                const isLimitReached = purchaseCount >= limit;
+                const limit = isSpeedRun ? 99 : 2;
+                const isLimitReached = !isSpeedRun && purchaseCount >= limit;
 
                 return (
                   <div 
@@ -480,9 +566,11 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-white">{t(pu.name, language)}</h3>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isLimitReached ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-zinc-700 text-zinc-500'}`}>
-                            {purchaseCount}/{limit}
-                          </span>
+                          {!isSpeedRun && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isLimitReached ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-zinc-700 text-zinc-500'}`}>
+                              {purchaseCount}/{limit}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500">{t(pu.description, language)}</p>
                       </div>
@@ -547,9 +635,6 @@ interface ScreenProps {
   onStartSpeedRun?: () => void;
   onOpenSpeedRunStats?: () => void;
   speedRunRecords?: SpeedRunRecord[];
-  hardcoreUnlocked?: boolean;
-  onStartHardcore?: () => void;
-  isHardcore?: boolean;
 }
 
 const BloodDrop = ({ delay = 0, left = "50%" }: { delay?: number; left?: string }) => (
@@ -1347,112 +1432,108 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
   const [selectedRelic, setSelectedRelic] = useState<Relic | null>(null);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex flex-col items-center w-full max-w-6xl p-4 bg-black/90 rounded-3xl border-4 border-red-900 shadow-[0_0_100px_rgba(0,0,0,1)] backdrop-blur-2xl overflow-y-auto max-h-[90vh]"
-    >
-      <div className="flex justify-between items-center w-full mb-4">
-        <button 
-          onClick={() => {
-            audioService.playSound('click');
-            onStart();
-          }} 
-          className="text-red-500 hover:text-red-400 flex items-center gap-2 uppercase tracking-widest text-xs"
-        >
-          <ArrowLeft size={16} /> {lang === 'pt' ? 'Voltar' : 'Back'}
-        </button>
-        <h2 className="text-4xl metallic-title tracking-widest">
-          {lang === 'pt' ? 'Relíquias Antigas' : 'Ancient Relics'}
-        </h2>
-        <div className="w-16" />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full mb-8">
-        {RELICS.map((relic) => {
-          const isUnlocked = playerStats.unlockedRelics.includes(relic.id);
-          const Icon = RELIC_ICONS[relic.icon];
-          
-          return (
-            <motion.div 
-              key={relic.id}
-              whileHover={isUnlocked ? { scale: 1.05, y: -5 } : {}}
-              whileTap={isUnlocked ? { scale: 0.95 } : {}}
-              onClick={() => isUnlocked && setSelectedRelic(relic)}
-              className={`
-                relative p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all cursor-pointer
-                ${isUnlocked 
-                  ? 'bg-red-950/30 border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.2)] animate-glow-red' 
-                  : 'bg-zinc-900/50 border-zinc-800 opacity-50 grayscale'}
-              `}
-            >
-              <div className={`p-3 rounded-full ${isUnlocked ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-600'}`}>
-                <Icon size={32} />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-center leading-tight">
-                {t(relic.name, lang)}
-              </span>
-              {!isUnlocked && <Lock size={12} className="absolute top-2 right-2 text-zinc-600" />}
-            </motion.div>
-          );
-        })}
-      </div>
-
-      <AnimatePresence>
-        {selectedRelic && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
-            onClick={() => setSelectedRelic(null)}
+    <div className="w-full max-w-6xl flex items-center justify-center min-h-[600px]">
+      <AnimatePresence mode="wait">
+        {!selectedRelic ? (
+          <motion.div 
+            key="list"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center w-full p-6"
           >
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              className="bg-zinc-900 border-2 border-red-600 p-4 rounded-3xl max-w-md w-full relative shadow-[0_0_50px_rgba(220,38,38,0.3)]"
-              onClick={e => e.stopPropagation()}
-            >
+            <div className="flex justify-between items-center w-full mb-12">
               <button 
-                onClick={() => setSelectedRelic(null)}
-                className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+                onClick={() => {
+                  audioService.playSound('click');
+                  onStart();
+                }} 
+                className="text-red-500 hover:text-red-400 flex items-center gap-2 uppercase tracking-[0.3em] text-[10px] font-black bg-red-950/20 px-5 py-2.5 rounded-full border border-red-900/30 transition-all hover:bg-red-950/40"
               >
-                <X size={24} />
+                <ArrowLeft size={14} /> {lang === 'pt' ? 'Voltar' : 'Back'}
               </button>
+              <h2 className="text-5xl metallic-title tracking-[0.2em] font-black uppercase">
+                {lang === 'pt' ? 'Relíquias Antigas' : 'Ancient Relics'}
+              </h2>
+              <div className="w-24" />
+            </div>
 
-              <div className="flex flex-col items-center text-center">
-                <div className="p-6 bg-red-600 rounded-full text-white mb-6 shadow-[0_0_30px_rgba(220,38,38,0.4)]">
-                  {(() => { const Icon = RELIC_ICONS[selectedRelic.icon]; return <Icon size={48} />; })()}
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 w-full">
+              {RELICS.map((relic) => {
+                const isUnlocked = playerStats.unlockedRelics.includes(relic.id);
+                const Icon = RELIC_ICONS[relic.icon];
                 
-                <h3 className="text-sm uppercase tracking-[0.4em] text-red-500 font-bold mb-2">
-                  {lang === 'pt' ? 'Relíquia Desbloqueada' : 'Relic Unlocked'}
-                </h3>
-                <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">
-                  {t(selectedRelic.name, lang)}
-                </h2>
-                
-                <div className="w-12 h-1 bg-red-600 mb-6 rounded-full" />
-                
-                <p className="text-gray-400 italic mb-6 leading-relaxed">
-                  "{t(selectedRelic.lore, lang)}"
-                </p>
-                
-                <div className="bg-red-950/40 border border-red-600/30 p-6 rounded-2xl w-full">
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-red-400 font-bold mb-2 block">
-                    {lang === 'pt' ? 'Bônus Ativo' : 'Active Bonus'}
-                  </span>
-                  <p className="text-xl font-bold text-white uppercase tracking-widest">
-                    {t(selectedRelic.bonus, lang)}
-                  </p>
-                </div>
+                return (
+                  <motion.div 
+                    key={relic.id}
+                    whileHover={isUnlocked ? { scale: 1.05, y: -5 } : {}}
+                    whileTap={isUnlocked ? { scale: 0.95 } : {}}
+                    onClick={() => isUnlocked && setSelectedRelic(relic)}
+                    className={`
+                      relative p-8 rounded-[2.5rem] border-2 flex flex-col items-center gap-5 transition-all cursor-pointer
+                      ${isUnlocked 
+                        ? 'bg-red-950/40 border-red-600/50 shadow-[0_0_40px_rgba(220,38,38,0.2)]' 
+                        : 'bg-zinc-900/20 border-zinc-800/40 opacity-30 grayscale'}
+                    `}
+                  >
+                    <div className={`p-5 rounded-full ${isUnlocked ? 'bg-red-600 shadow-[0_0_25px_rgba(220,38,38,0.5)] text-white' : 'bg-zinc-800 text-zinc-600'}`}>
+                      <Icon size={40} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest text-center leading-tight text-zinc-100">
+                      {t(relic.name, lang)}
+                    </span>
+                    {!isUnlocked && <Lock size={16} className="absolute top-4 right-4 text-zinc-600" />}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="detail"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="relic-modal-bg border-4 border-red-500/60 p-12 rounded-[3.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(220,38,38,0.6)]"
+          >
+            <button 
+              onClick={() => setSelectedRelic(null)}
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-all hover:scale-110 active:scale-90"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="p-12 bg-red-600 rounded-full text-white mb-10 shadow-[0_0_60px_rgba(220,38,38,0.8)] animate-pulse">
+                {(() => { const Icon = RELIC_ICONS[selectedRelic.icon]; return <Icon size={76} />; })()}
               </div>
-            </motion.div>
+              
+              <h3 className="text-lg uppercase tracking-[0.6em] text-red-400 font-black mb-4 drop-shadow-[0_0_12px_rgba(220,38,38,0.6)]">
+                {lang === 'pt' ? 'Relíquia Desbloqueada' : 'Relic Unlocked'}
+              </h3>
+              <h2 className="text-5xl font-black text-white uppercase tracking-tighter mb-8 drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
+                {t(selectedRelic.name, lang)}
+              </h2>
+              
+              <div className="w-32 h-1.5 bg-gradient-to-r from-transparent via-red-500 to-transparent mb-10 rounded-full" />
+              
+              <p className="text-zinc-100 italic mb-12 leading-relaxed text-lg font-medium max-w-md">
+                "{t(selectedRelic.lore, lang)}"
+              </p>
+              
+              <div className="bg-black/50 backdrop-blur-3xl border-2 border-red-600/40 p-10 rounded-[3rem] w-full shadow-[inset_0_0_40px_rgba(220,38,38,0.3)]">
+                <span className="text-xs uppercase tracking-[0.5em] text-red-400 font-black mb-4 block">
+                  {lang === 'pt' ? 'Bônus Ativo' : 'Active Bonus'}
+                </span>
+                <p className="text-4xl font-black text-white uppercase tracking-[0.1em] drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
+                  {t(selectedRelic.bonus, lang)}
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -1545,11 +1626,11 @@ export const ExportModal = ({ isOpen, onClose, onConfirm, language }: {
 
 export const ComboFeedback = ({ text, comboCount }: { text: string | null, comboCount: number }) => {
   const getComboStyle = (count: number) => {
-    if (count >= 6) return { color: '#ff0000', size: 'text-6xl md:text-9xl', glow: 'rgba(255, 0, 0, 0.9)', shake: 10, stroke: '3px white' }; // x6
-    if (count === 5) return { color: '#a855f7', size: 'text-5xl md:text-8xl', glow: 'rgba(168, 85, 247, 0.8)', shake: 6, stroke: '2px white' }; // x5
-    if (count === 4) return { color: '#3b82f6', size: 'text-4xl md:text-7xl', glow: 'rgba(59, 130, 246, 0.8)', shake: 4, stroke: 'none' }; // x4
-    if (count === 3) return { color: '#22c55e', size: 'text-3xl md:text-6xl', glow: 'rgba(34, 197, 94, 0.8)', shake: 3, stroke: 'none' }; // x3
-    return { color: '#eab308', size: 'text-2xl md:text-5xl', glow: 'rgba(234, 179, 8, 0.8)', shake: 2, stroke: 'none' }; // x2
+    if (count >= 6) return { color: '#ff1a1a', size: 'text-7xl md:text-9xl', glow: 'rgba(255, 0, 0, 0.9)', shake: 12, stroke: '2px white' };
+    if (count === 5) return { color: '#ef4444', size: 'text-6xl md:text-8xl', glow: 'rgba(239, 68, 68, 0.8)', shake: 8, stroke: '1px white' };
+    if (count === 4) return { color: '#dc2626', size: 'text-5xl md:text-7xl', glow: 'rgba(220, 38, 38, 0.8)', shake: 6, stroke: 'none' };
+    if (count === 3) return { color: '#991b1b', size: 'text-4xl md:text-6xl', glow: 'rgba(153, 27, 27, 0.8)', shake: 4, stroke: 'none' };
+    return { color: '#7f1d1d', size: 'text-3xl md:text-5xl', glow: 'rgba(127, 29, 29, 0.8)', shake: 2, stroke: 'none' };
   };
 
   const style = getComboStyle(comboCount);
@@ -1558,30 +1639,36 @@ export const ComboFeedback = ({ text, comboCount }: { text: string | null, combo
     <AnimatePresence>
       {text && (
         <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.5 }}
+          initial={{ opacity: 0, y: 50, scale: 0.5, rotate: -15 }}
           animate={{ 
             opacity: 1, 
             y: 0, 
-            scale: [1, 1.2, 1],
-            x: [0, -style.shake, style.shake, -style.shake, style.shake, 0], // Shaking effect
+            scale: [1, 1.3, 1],
+            rotate: [0, 5, -5, 0],
+            x: [0, -style.shake, style.shake, -style.shake, style.shake, 0],
           }}
           transition={{
             x: { duration: 0.1, repeat: Infinity },
-            scale: { duration: 0.2 },
-            default: { duration: 0.3 }
+            scale: { duration: 0.3 },
+            rotate: { duration: 0.2 },
+            default: { duration: 0.4, ease: "easeOut" }
           }}
-          exit={{ opacity: 0, scale: 1.5 }}
-          className="fixed top-1/3 left-1/2 -translate-x-1/2 z-[60] pointer-events-none"
+          exit={{ opacity: 0, scale: 2, filter: 'blur(10px)' }}
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] pointer-events-none"
         >
           <div 
-            className={`${style.size} font-black uppercase tracking-widest italic text-center drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+            className={`${style.size} font-black uppercase tracking-tighter italic text-center drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] metallic-title`}
             style={{ 
               color: style.color,
-              textShadow: `0 0 20px ${style.glow}, 0 0 40px ${style.glow}`,
-              WebkitTextStroke: style.stroke
-            }}
+              filter: `drop-shadow(0 0 20px ${style.glow})`,
+              WebkitTextStroke: style.stroke,
+              fontFamily: '"UnifrakturCook", cursive'
+            } as any}
           >
             {text}
+            <div className="text-xl md:text-3xl mt-2 font-sans not-italic tracking-[0.5em] opacity-80">
+              x{comboCount}
+            </div>
           </div>
         </motion.div>
       )}

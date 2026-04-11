@@ -23,20 +23,28 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
         y: [-2, 2, -2, 2, 0],
       } : {}}
       transition={{ duration: 0.2, repeat: isShaking ? Infinity : 0 }}
-      className="relative p-4"
+      className="relative p-8"
     >
       <GridEffects effects={effects} gridSize={gridSize} />
+      <div className="grid-glow" />
 
-      <div 
-        className="relative p-1 rounded-[32px] bg-gradient-to-br from-red-900/20 via-zinc-900 to-red-900/20 shadow-[0_0_40px_rgba(0,0,0,0.8)]"
-      >
+      <div className="gothic-frame rounded-[40px]">
+        {/* Decorative Runes */}
+        <div className="rune-decoration top-2 left-1/2 -translate-x-1/2">ᚱᚢᚾᛖᛋ ᛟᚠ ᛒᛚᛟᛟᛞ</div>
+        <div className="rune-decoration bottom-2 left-1/2 -translate-x-1/2">ᛖᛏᛖᚱᚾᚨᛚ ᚱᛁᛏᚢᚨᛚ</div>
+        <div className="rune-decoration top-1/2 left-2 -translate-y-1/2 rotate-90">ᛋᚨᚲᚱᛁᚠᛁᚲᛖ</div>
+        <div className="rune-decoration top-1/2 right-2 -translate-y-1/2 -rotate-90">ᛞᚨᚱᚲᚾᛖᛋᛋ</div>
+
         <div 
-          className="relative overflow-hidden rounded-[28px] border border-red-900/30"
-          style={{ 
-            width: 'min(85vw, 65vh, 600px)',
-            aspectRatio: '1/1'
-          }}
+          className="relative p-1 rounded-[32px] bg-gradient-to-br from-red-900/40 via-zinc-950 to-red-900/40 shadow-[0_0_60px_rgba(0,0,0,1)]"
         >
+          <div 
+            className="relative overflow-hidden rounded-[28px] border border-red-900/40"
+            style={{ 
+              width: 'min(75vw, 75vh, 800px)',
+              aspectRatio: '1/1'
+            }}
+          >
           {/* Background Grid Cells */}
         <div 
           className="absolute inset-0 grid gap-2"
@@ -89,6 +97,7 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
         </AnimatePresence>
         </div>
       </div>
+    </div>
     </motion.div>
   );
 };

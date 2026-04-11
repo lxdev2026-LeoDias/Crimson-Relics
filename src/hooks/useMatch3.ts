@@ -240,11 +240,36 @@ export const useMatch3 = () => {
     if (score >= 300000) {
       unlockAchievement('score_300k');
     }
+    if (score >= 400000) {
+      unlockAchievement('score_400k');
+    }
+    if (score >= 500000) {
+      unlockAchievement('score_500k');
+    }
   }, [score, unlockAchievement]);
 
   // Initialize grid and level
   const initLevel = useCallback((levelId: number) => {
-    const level = LEVELS.find(l => l.id === levelId) || SPEEDRUN_LEVELS.find(l => l.id === levelId) || LEVELS[0];
+    let level = LEVELS.find(l => l.id === levelId) || SPEEDRUN_LEVELS.find(l => l.id === levelId);
+    
+    // Infinite levels logic for normal mode
+    if (!level && levelId > 100 && !isSpeedRun) {
+      const i = levelId - 1;
+      level = {
+        id: levelId,
+        moves: 25,
+        rewardXP: 0,
+        rewardCoins: 500 + i * 100,
+        goals: [
+          { type: 'score', target: 2000 + i * 3000, current: 0 },
+          { type: PIECE_TYPES[i % PIECE_TYPES.length], target: 15 + Math.floor(i / 2), current: 0 },
+          ...(i > 5 ? [{ type: PIECE_TYPES[(i + 2) % PIECE_TYPES.length], target: 10 + Math.floor(i / 3), current: 0 }] : []),
+        ],
+      };
+    }
+
+    if (!level) level = LEVELS[0];
+    
     setCurrentLevel(level);
     
     let targetGoals = level.goals.map(g => ({ ...g, current: 0 }));
@@ -1090,21 +1115,17 @@ export const useMatch3 = () => {
   };
 
   const buyPowerUp = (powerUp: PowerUpType, baseCost: number) => {
-    if (!isSpeedRun) {
-      const currentPurchases = purchasesThisLevel[powerUp] || 0;
-      const limit = 2;
-      if (currentPurchases >= limit) return false;
-    }
+    if (isSpeedRun) return false;
+
+    const currentPurchases = purchasesThisLevel[powerUp] || 0;
+    const limit = 2;
+    if (currentPurchases >= limit) return false;
 
     const cost = getPowerUpCost(baseCost);
-    const currentCoins = isSpeedRun ? speedRunCoins : playerStats.bloodCoins;
+    const currentCoins = playerStats.bloodCoins;
 
     if (currentCoins >= cost) {
-      if (isSpeedRun) {
-        setSpeedRunCoins(prev => prev - cost);
-      } else {
-        setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins - cost }));
-      }
+      setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins - cost }));
       
       setPurchasesThisLevel(prev => ({
         ...prev,
@@ -1127,7 +1148,19 @@ export const useMatch3 = () => {
   };
 
   const completeLevel = useCallback(() => {
-    const levelData = isSpeedRun ? SPEEDRUN_LEVELS[speedRunLevelIndex] : LEVELS[playerStats.level - 1];
+    let levelData: any;
+    if (isSpeedRun) {
+      levelData = SPEEDRUN_LEVELS[speedRunLevelIndex];
+    } else {
+      levelData = LEVELS[playerStats.level - 1];
+      if (!levelData) {
+        // Fallback for infinite levels
+        const i = playerStats.level - 1;
+        levelData = {
+          rewardCoins: 500 + i * 100,
+        };
+      }
+    }
     const now = Date.now();
     
     if (isSpeedRun) {
@@ -1143,6 +1176,12 @@ export const useMatch3 = () => {
         return 'next_speedrun';
       } else {
         const totalTime = (now - speedRunStartTime) / 1000;
+        
+        // Check for speedrun achievement (under 10 minutes = 600 seconds)
+        if (totalTime < 600) {
+          unlockAchievement('speedrun_10min');
+        }
+
         const record: SpeedRunRecord = {
           levelTimes: nextTimers,
           totalTime,
@@ -1157,7 +1196,7 @@ export const useMatch3 = () => {
           const isBetter = !prev.bestSpeedRun || totalTime < prev.bestSpeedRun.totalTime;
           const nextRecords = [...(prev.speedRunRecords || []), record]
             .sort((a, b) => a.totalTime - b.totalTime)
-            .slice(0, 10);
+            .slice(0, 3);
             
           return {
             ...prev,
@@ -1196,13 +1235,6 @@ export const useMatch3 = () => {
 
       if (isGameComplete) {
         unlockAchievement('game_complete');
-        return {
-          ...prev,
-          bloodCoins: prev.bloodCoins + rewardCoins,
-          unlockedRelics: nextUnlockedRelics,
-          earnedRelics: nextEarnedRelics,
-          speedRunUnlocked: true
-        };
       }
 
       return {
@@ -1210,7 +1242,8 @@ export const useMatch3 = () => {
         level: nextLevelNum,
         bloodCoins: prev.bloodCoins + rewardCoins,
         unlockedRelics: nextUnlockedRelics,
-        earnedRelics: nextEarnedRelics
+        earnedRelics: nextEarnedRelics,
+        speedRunUnlocked: true
       };
     });
 

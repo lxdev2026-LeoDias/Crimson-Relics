@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMatch3 } from './hooks/useMatch3';
 import { GridComponent } from './components/Grid';
-import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ExportModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, LowMovesWarning, FinalLoreScreen, SpeedRunStats, SpeedRunPanel, SpeedRunSetupModal, GameplayPanel, ProgressPanel } from './components/GameUI';
+import { HUD, IntroScreen, GameOverScreen, LevelWinScreen, Shop, RelicsScreen, RelicUnlockScreen, LoreScreen, OptionsModal, ExportModal, ComboFeedback, AchievementNotification, AchievementsScreen, PowerUpNotification, LowMovesWarning, FinalLoreScreen, SpeedRunStats, SpeedRunSetupModal, GameplayPanel, ProgressPanel } from './components/GameUI';
 import { audioService } from './services/audioService';
 import { SinisterEffects } from './components/SinisterEffects';
 import { GameState, Language, ExportOptions } from './types';
@@ -276,7 +276,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="z-10 flex flex-col items-center w-full max-w-full px-4 py-2 relative overflow-hidden"
           >
-            <div className="relative z-10 w-full flex flex-col items-center gap-4">
+            <div className="relative z-10 w-full flex flex-col items-center gap-2">
               <HUD 
                 score={score} 
                 currentMatchScore={currentMatchScore}
@@ -298,7 +298,7 @@ export default function App() {
               
               <div className="flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full max-w-[1600px]">
                 {/* Left Panel: Gameplay Info */}
-                <div className="w-full xl:w-80 mt-4 xl:mt-8 order-2 xl:order-1">
+                <div className="w-full xl:w-80 mt-2 xl:mt-4 order-2 xl:order-1">
                   <GameplayPanel 
                     goals={goals} 
                     playerStats={playerStats} 
@@ -306,11 +306,14 @@ export default function App() {
                     currentMatchScore={currentMatchScore}
                     comboCount={comboCount}
                     isSpeedRun={isSpeedRun}
+                    levelTimes={speedRunTimers}
+                    currentLevelTime={currentLevelTime}
+                    speedRunLevelIndex={speedRunLevelIndex}
                   />
                 </div>
 
                 {/* Center: Grid */}
-                <div className="relative flex-1 flex justify-center order-1 xl:order-2">
+                <div className="relative flex-1 flex justify-center order-1 xl:order-2 -mt-6 xl:-mt-14">
                   <GridComponent
                     grid={grid}
                     selectedPiece={selectedPiece}
@@ -344,7 +347,7 @@ export default function App() {
                 </div>
 
                 {/* Right Panel: Progress Info */}
-                <div className="w-full xl:w-80 flex flex-col gap-6 mt-4 xl:mt-8 order-3">
+                <div className="w-full xl:w-80 flex flex-col gap-6 mt-2 xl:mt-4 order-3">
                   <ProgressPanel 
                     goals={goals} 
                     playerStats={playerStats} 
@@ -353,15 +356,6 @@ export default function App() {
                     comboCount={comboCount}
                     isSpeedRun={isSpeedRun}
                   />
-                  
-                  {isSpeedRun && (
-                    <SpeedRunPanel 
-                      levelTimes={speedRunTimers}
-                      currentLevelTime={currentLevelTime}
-                      speedRunLevelIndex={speedRunLevelIndex}
-                      language={playerStats.language}
-                    />
-                  )}
                 </div>
               </div>
             </div>

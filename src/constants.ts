@@ -146,70 +146,70 @@ export const ACHIEVEMENTS: Achievement[] = [
     id: 'relic_chalice',
     name: { en: 'The First Sip', pt: 'O Primeiro Gole' },
     description: { en: 'Recover the Chalice of Eternal Blood', pt: 'Recupere o Cálice de Sangue Eterno' },
-    title: { en: 'Blood Initiate', pt: 'Iniciado do Sangue' },
+    title: { en: 'Sommelier of the Damned', pt: 'Sommelier dos Amaldiçoados' },
     icon: 'CupSoda'
   },
   {
     id: 'relic_ring',
     name: { en: 'Authority of the Night', pt: 'Autoridade da Noite' },
     description: { en: 'Recover the Ring of the Dark Count', pt: 'Recupere o Anel do Conde das Trevas' },
-    title: { en: 'Dark Noble', pt: 'Nobre das Trevas' },
+    title: { en: 'Lord of the Crimson Circle', pt: 'Senhor do Círculo Carmesim' },
     icon: 'CircleDot'
   },
   {
     id: 'relic_pendant',
     name: { en: 'Veil of Shadows', pt: 'Véu das Sombras' },
     description: { en: 'Recover the Pendant of the Night Veil', pt: 'Recupere o Pingente do Véu da Noite' },
-    title: { en: 'Shadow Walker', pt: 'Caminhante das Sombras' },
+    title: { en: 'Ghost of the Abyss', pt: 'Fantasma do Abismo' },
     icon: 'Shield'
   },
   {
     id: 'relic_grimoire',
     name: { en: 'Forbidden Knowledge', pt: 'Conhecimento Proibido' },
     description: { en: 'Recover the Forbidden Grimoire', pt: 'Recupere o Grimório Proibido' },
-    title: { en: 'Arcane Scholar', pt: 'Erudito Arcano' },
+    title: { en: 'Librarian of Forbidden Sins', pt: 'Bibliotecário de Pecados Proibidos' },
     icon: 'Book'
   },
   {
     id: 'relic_crown',
     name: { en: 'Eternal Dominion', pt: 'Domínio Eterno' },
     description: { en: 'Recover the Crown of Eternal Dominion', pt: 'Recupere a Coroa do Domínio Eterno' },
-    title: { en: 'Night Sovereign', pt: 'Soberano da Noite' },
+    title: { en: 'Emperor of the Eternal Night', pt: 'Imperador da Noite Eterna' },
     icon: 'Crown'
   },
   {
     id: 'relic_hourglass',
     name: { en: 'Master of Time', pt: 'Mestre do Tempo' },
     description: { en: 'Recover the Hourglass of Immortality', pt: 'Recupere a Ampulheta da Imortalidade' },
-    title: { en: 'Eternal One', pt: 'O Eterno' },
+    title: { en: 'Time-Bender of the Void', pt: 'Dobrador do Tempo do Vazio' },
     icon: 'Hourglass'
   },
   {
     id: 'relic_orb',
     name: { en: 'All-Seeing Eye', pt: 'Olho que Tudo Vê' },
     description: { en: 'Recover the Crimson Orb', pt: 'Recupere o Orbe Carmesim' },
-    title: { en: 'Crimson Seer', pt: 'Vidente Carmesim' },
+    title: { en: 'Oracle of the Bleeding Eye', pt: 'Oráculo do Olho Sangrento' },
     icon: 'Orbit'
   },
   {
     id: 'relic_dagger',
     name: { en: 'Thirst for Essence', pt: 'Sede de Essência' },
     description: { en: 'Recover the Ritual Dagger', pt: 'Recupere a Adaga de Ritual' },
-    title: { en: 'Blood Butcher', pt: 'Açougueiro de Sangue' },
+    title: { en: 'Surgeon of the Sanguine Soul', pt: 'Cirurgião da Alma Sanguínea' },
     icon: 'Sword'
   },
   {
     id: 'relic_seal',
     name: { en: 'Bound in Blood', pt: 'Vinculado em Sangue' },
     description: { en: 'Recover the Arcane Blood Seal', pt: 'Recupere o Selo de Sangue Arcano' },
-    title: { en: 'Soul Binder', pt: 'Vinculador de Almas' },
+    title: { en: 'Architect of Blood Oaths', pt: 'Arquiteto de Juramentos de Sangue' },
     icon: 'Lock'
   },
   {
     id: 'relic_heart',
     name: { en: 'Dracula’s Legacy', pt: 'Legado de Drácula' },
     description: { en: 'Recover the Heart of Dark Crystal', pt: 'Recupere o Coração de Cristal Negro' },
-    title: { en: 'Vampire Lord', pt: 'Senhor Vampiro' },
+    title: { en: 'Heartbeat of the Primordial Darkness', pt: 'Batida do Coração da Escuridão Primordial' },
     icon: 'Heart'
   },
   {
@@ -267,6 +267,27 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: { en: 'Reach 300,000 points in a single Ritual', pt: 'Alcance 300.000 pontos em um único Ritual' },
     title: { en: 'The Eternal Eclipse', pt: 'O Eclipse Eterno' },
     icon: 'Star'
+  },
+  {
+    id: 'score_400k',
+    name: { en: 'Celestial Sanguine Zenith', pt: 'Zênite Sanguíneo Celestial' },
+    description: { en: 'Reach 400,000 points in a single Ritual', pt: 'Alcance 400.000 pontos em um único Ritual' },
+    title: { en: 'The Blood Star', pt: 'A Estrela de Sangue' },
+    icon: 'Zap'
+  },
+  {
+    id: 'score_500k',
+    name: { en: 'Apotheosis of the Crimson God', pt: 'Apoteose do Deus Carmesim' },
+    description: { en: 'Reach 50,000 points in a single Ritual', pt: 'Alcance 500.000 pontos em um único Ritual' },
+    title: { en: 'The Absolute Essence', pt: 'A Essência Absoluta' },
+    icon: 'Crown'
+  },
+  {
+    id: 'speedrun_10min',
+    name: { en: 'Blink of the Vampire', pt: 'Piscar do Vampiro' },
+    description: { en: 'Complete Speed Run mode in less than 10 minutes', pt: 'Complete o modo Speed Run em menos de 10 minutos' },
+    title: { en: 'The Sanguine Flash', pt: 'O Clarão Sanguíneo' },
+    icon: 'Hourglass'
   },
   {
     id: 'game_complete',

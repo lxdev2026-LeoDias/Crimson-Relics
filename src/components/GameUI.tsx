@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX } from 'lucide-react';
+import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX, Timer } from 'lucide-react';
 import { LevelGoal, PlayerStats, PowerUpType, Relic, LocalizedString, Language, Achievement, SpeedRunRecord, ExportOptions } from '../types';
 import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE } from '../constants';
 import { audioService } from '../services/audioService';
@@ -240,13 +240,23 @@ interface SidePanelProps {
   currentMatchScore: number;
   comboCount: number;
   isSpeedRun?: boolean;
+  levelTimes?: number[];
+  currentLevelTime?: number;
+  speedRunLevelIndex?: number;
 }
 
-export const GameplayPanel = ({ goals, playerStats }: SidePanelProps) => {
+export const GameplayPanel = ({ 
+  goals, 
+  playerStats, 
+  isSpeedRun, 
+  levelTimes = [], 
+  currentLevelTime = 0, 
+  speedRunLevelIndex = 0 
+}: SidePanelProps) => {
   const lang = playerStats.language;
   
   return (
-    <div className="flex flex-col gap-8 w-80 h-[600px] p-8 bg-zinc-950/60 rounded-[3rem] border border-red-900/40 backdrop-blur-xl card-glow relative overflow-hidden">
+    <div className="flex flex-col gap-6 w-80 h-[600px] p-8 bg-zinc-950/60 rounded-[3rem] border border-red-900/40 backdrop-blur-xl card-glow relative overflow-hidden">
       <div className="space-y-6 relative z-10">
         <div className="flex items-center gap-4 border-b border-red-900/40 pb-4">
           <Target size={24} className="text-red-500" />
@@ -254,7 +264,7 @@ export const GameplayPanel = ({ goals, playerStats }: SidePanelProps) => {
             {lang === 'pt' ? 'Objetivos' : 'Objectives'}
           </span>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {goals.map((goal, idx) => {
             const Config = goal.type === 'score' ? { icon: Star, color: '#eab308' } : PIECE_CONFIG[goal.type as keyof typeof PIECE_CONFIG];
             const Icon = Config.icon;
@@ -286,6 +296,34 @@ export const GameplayPanel = ({ goals, playerStats }: SidePanelProps) => {
           })}
         </div>
       </div>
+
+      {/* Speedrun Section - Integrated into Left Panel */}
+      {isSpeedRun && (
+        <div className="space-y-4 relative z-10 border-t border-red-900/20 pt-6">
+          <div className="flex items-center gap-4 border-b border-yellow-900/40 pb-3">
+            <Timer size={20} className="text-yellow-500" />
+            <span className="text-[10px] uppercase tracking-[0.3em] text-yellow-500 font-black">
+              {lang === 'pt' ? 'Tempos do Ritual' : 'Ritual Times'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
+            {Array.from({ length: 10 }).map((_, i) => {
+              const time = i < levelTimes.length ? levelTimes[i] : (i === speedRunLevelIndex ? currentLevelTime : null);
+              return (
+                <div key={i} className={`flex flex-col p-1.5 rounded-lg border transition-all ${i === speedRunLevelIndex ? 'bg-yellow-900/30 border-yellow-600/50 shadow-[0_0_10px_rgba(202,138,4,0.1)]' : 'bg-black/40 border-yellow-900/10'}`}>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-[7px] uppercase tracking-widest text-yellow-500/40 font-black">R{i + 1}</span>
+                    {i === speedRunLevelIndex && <div className="w-1 h-1 bg-yellow-500 rounded-full animate-ping" />}
+                  </div>
+                  <span className={`text-[9px] font-mono font-black tabular-nums ${i === speedRunLevelIndex ? 'text-yellow-400' : (time !== null ? 'text-yellow-500/80' : 'text-yellow-900/20')}`}>
+                    {time !== null ? formatTime(time) : '--:--:---'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <BloodSea />
     </div>
@@ -408,113 +446,202 @@ export const formatTime = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}:${ms.toString().padStart(3, '0')}`;
 };
 
-export const SpeedRunPanel = ({ levelTimes, currentLevelTime, speedRunLevelIndex, language }: { levelTimes: number[], currentLevelTime: number, speedRunLevelIndex: number, language: Language }) => {
-  return (
-    <div className="flex flex-col w-64 p-4 relative overflow-hidden">
-      <h3 className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/50 font-bold mb-4 text-center">
-        {language === 'pt' ? 'Tempos do Ritual' : 'Ritual Times'}
-      </h3>
-      
-      <div className="space-y-2 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
-        {Array.from({ length: 10 }).map((_, i) => {
-          const time = i < levelTimes.length ? levelTimes[i] : (i === speedRunLevelIndex ? currentLevelTime : null);
-          return (
-            <div key={i} className={`flex justify-between items-center p-2 rounded-xl border ${i === speedRunLevelIndex ? 'bg-yellow-900/20 border-yellow-600/40' : 'bg-black/20 border-yellow-900/10'}`}>
-              <span className="text-[9px] uppercase tracking-widest text-yellow-500/40">Ritual {i + 1}</span>
-              <span className={`text-xs font-mono font-bold ${i === speedRunLevelIndex ? 'text-yellow-400 animate-pulse' : (time !== null ? 'text-yellow-500/80' : 'text-yellow-900/30')}`}>
-                {time !== null ? formatTime(time) : '--:--:---'}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
-export const SpeedRunStats = ({ lastSpeedRun, speedRunRecords = [], language, onBack }: { lastSpeedRun?: SpeedRunRecord | null, speedRunRecords?: SpeedRunRecord[], language: Language, onBack: () => void }) => {
-  const [view, setView] = useState<'last' | 'top'>(lastSpeedRun ? 'last' : 'top');
-  
+export const SpeedRunStats = ({ speedRunRecords = [], language, onBack }: { lastSpeedRun?: SpeedRunRecord | null, speedRunRecords?: SpeedRunRecord[], language: Language, onBack: () => void }) => {
+  // Only top 3
+  const top3 = speedRunRecords.slice(0, 3);
+
+  const renderRecord = (rec: SpeedRunRecord, i: number) => {
+    const isFirst = i === 0;
+    const isSecond = i === 1;
+    const isThird = i === 2;
+    
+    let trophyColor = "text-yellow-500";
+    let glowColor = "rgba(234, 179, 8, 0.3)";
+    let scale = 1;
+    let fontSize = "text-2xl";
+    let iconSize = 48;
+
+    if (isFirst) {
+      trophyColor = "text-yellow-400";
+      glowColor = "rgba(234, 179, 8, 0.5)";
+      scale = 1.1;
+      fontSize = "text-3xl";
+      iconSize = 64;
+    } else if (isSecond) {
+      trophyColor = "text-zinc-300";
+      glowColor = "rgba(212, 212, 216, 0.3)";
+      scale = 1;
+      fontSize = "text-xl";
+      iconSize = 48;
+    } else if (isThird) {
+      trophyColor = "text-amber-700";
+      glowColor = "rgba(180, 83, 9, 0.2)";
+      scale = 0.95;
+      fontSize = "text-lg";
+      iconSize = 40;
+    }
+
+    return (
+      <motion.div
+        key={i}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: i * 0.2 }}
+        style={{ scale }}
+        className={`relative flex flex-col items-center p-6 rounded-3xl border-2 transition-all duration-500 w-full ${
+          isFirst ? 'bg-yellow-900/10 border-yellow-600/40 shadow-[0_0_30px_rgba(234,179,8,0.15)]' :
+          isSecond ? 'bg-zinc-900/10 border-zinc-600/30' :
+          'bg-amber-900/5 border-amber-900/20'
+        }`}
+      >
+        {isFirst && (
+          <motion.div 
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute inset-0 rounded-3xl bg-yellow-500/5 blur-xl pointer-events-none" 
+          />
+        )}
+
+        <div className="flex flex-col items-center gap-4 text-center">
+          <motion.div
+            animate={isFirst ? { scale: [1, 1.05, 1] } : {}}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Trophy size={iconSize} className={`${trophyColor} drop-shadow-[0_0_15px_${glowColor}]`} />
+          </motion.div>
+
+          <div className="flex flex-col items-center">
+            <span className={`font-black uppercase tracking-widest font-cinzel ${fontSize} ${isFirst ? 'text-yellow-500' : isSecond ? 'text-zinc-300' : 'text-amber-700'}`}>
+              {rec.playerTitle ? `${rec.playerTitle} ` : ''}{rec.playerName || (language === 'pt' ? 'Anônimo' : 'Anonymous')}
+            </span>
+            <span className={`font-mono font-black ${isFirst ? 'text-4xl text-yellow-400' : 'text-2xl text-zinc-400'}`}>
+              {formatTime(rec.totalTime)}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 mt-2">
+              {new Date(rec.date).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl overflow-hidden"
     >
-      <div className="max-w-md w-full bg-zinc-950 border-2 border-yellow-600/30 rounded-[40px] p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-600/50 to-transparent" />
-        
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black text-yellow-500 uppercase tracking-widest font-cinzel">
-            {language === 'pt' ? 'Speed Run' : 'Speed Run'}
-          </h2>
-          <button onClick={onBack} className="p-2 hover:bg-yellow-900/20 rounded-full text-yellow-500/50 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+      {/* Background Particles */}
+      <div className="absolute inset-0 pointer-events-none opacity-30">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-red-500 rounded-full blur-[1px]"
+            initial={{ 
+              x: Math.random() * 100 + "%", 
+              y: "110%",
+              opacity: 0 
+            }}
+            animate={{ 
+              y: "-10%",
+              opacity: [0, 1, 0],
+              scale: [0, 1.5, 0]
+            }}
+            transition={{ 
+              duration: 5 + Math.random() * 10, 
+              repeat: Infinity,
+              delay: Math.random() * 5
+            }}
+          />
+        ))}
+      </div>
 
-        <div className="flex gap-2 mb-6">
-          <button 
-            onClick={() => setView('last')}
-            className={`flex-1 py-2 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all border ${view === 'last' ? 'bg-yellow-600/20 border-yellow-600 text-yellow-500' : 'bg-black/40 border-yellow-900/30 text-yellow-900'}`}
-          >
-            {language === 'pt' ? 'Último Ritual' : 'Last Ritual'}
-          </button>
-          <button 
-            onClick={() => setView('top')}
-            className={`flex-1 py-2 rounded-xl text-[10px] uppercase tracking-widest font-bold transition-all border ${view === 'top' ? 'bg-yellow-600/20 border-yellow-600 text-yellow-500' : 'bg-black/40 border-yellow-900/30 text-yellow-900'}`}
-          >
-            {language === 'pt' ? 'Recordes (Top 10)' : 'Records (Top 10)'}
-          </button>
-        </div>
+      <motion.div
+        initial={{ scale: 0.9, y: 30, opacity: 0 }}
+        animate={{ 
+          scale: 1, 
+          y: 0, 
+          opacity: 1,
+          boxShadow: [
+            "0 0 100px rgba(0,0,0,1), 0 0 40px rgba(153,27,27,0.2)",
+            "0 0 100px rgba(0,0,0,1), 0 0 60px rgba(153,27,27,0.3)",
+            "0 0 100px rgba(0,0,0,1), 0 0 40px rgba(153,27,27,0.2)"
+          ]
+        }}
+        transition={{ 
+          opacity: { duration: 0.5 },
+          scale: { duration: 0.5 },
+          y: { duration: 0.5 },
+          boxShadow: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+        }}
+        className="relative w-full max-w-5xl"
+      >
+        {/* Gothic Frame */}
+        <div className="relative bg-zinc-950/90 border-4 border-red-950 rounded-[3rem] p-8 md:p-12 overflow-hidden">
+          {/* Inner Glow */}
+          <div className="absolute inset-0 bg-gradient-to-b from-red-950/10 via-transparent to-red-950/10 pointer-events-none" />
+          
+          {/* Ornaments */}
+          <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <div className="absolute top-4 left-4 text-red-900/40 font-cinzel text-4xl">♰</div>
+            <div className="absolute top-4 right-4 text-red-900/40 font-cinzel text-4xl">♰</div>
+            <div className="absolute bottom-4 left-4 text-red-900/40 font-cinzel text-4xl">♰</div>
+            <div className="absolute bottom-4 right-4 text-red-900/40 font-cinzel text-4xl">♰</div>
+            
+            {/* Decorative borders */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-yellow-600/50 to-transparent" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-yellow-600/50 to-transparent" />
+          </div>
 
-        <div className="space-y-4 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          {view === 'last' && lastSpeedRun ? (
-            <div className="space-y-4">
-              <div className="text-center mb-4">
-                <p className="text-yellow-500/70 text-sm uppercase tracking-widest mb-1">{language === 'pt' ? 'Parabéns, seu tempo foi:' : 'Congratulations, your time was:'}</p>
-                <p className="text-4xl font-mono font-black text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]">{formatTime(lastSpeedRun.totalTime)}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {lastSpeedRun.levelTimes.map((time, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 bg-black/40 rounded-xl border border-yellow-900/20">
-                    <span className="text-[10px] uppercase tracking-widest text-yellow-500/50">Ritual {i + 1}</span>
-                    <span className="text-xs font-mono font-bold text-yellow-400">{formatTime(time)}</span>
+          <div className="relative z-10 flex flex-col items-center">
+            <h2 className="text-3xl md:text-5xl font-black text-yellow-600 uppercase tracking-[0.3em] font-cinzel mb-8 md:mb-12 drop-shadow-[0_0_15px_rgba(202,138,4,0.3)] text-center">
+              {language === 'pt' ? 'Speed Run / Recordes' : 'Speed Run / Records'}
+            </h2>
+
+            <div className="w-full flex flex-col items-center gap-8">
+              {top3.length > 0 ? (
+                <>
+                  {/* 1st Place - Center Top */}
+                  <div className="w-full max-w-md">
+                    {renderRecord(top3[0], 0)}
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {speedRunRecords.length > 0 ? speedRunRecords.map((rec, i) => (
-                <div key={i} className="flex justify-between items-center p-4 bg-yellow-900/5 rounded-2xl border border-yellow-600/10 hover:border-yellow-600/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl font-black text-yellow-600/40">#{i + 1}</span>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-yellow-500 uppercase tracking-widest">
-                          {rec.playerTitle ? `${rec.playerTitle} ` : ''}{rec.playerName || (language === 'pt' ? 'Anônimo' : 'Anonymous')}
-                        </span>
-                      </div>
-                      <span className="text-lg font-mono font-black text-yellow-500">{formatTime(rec.totalTime)}</span>
-                      <span className="text-[8px] uppercase tracking-widest text-yellow-500/30">{new Date(rec.date).toLocaleDateString()}</span>
+
+                  {/* 2nd and 3rd - Side by Side */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                    <div className="flex justify-center">
+                      {top3[1] ? renderRecord(top3[1], 1) : (
+                        <div className="w-full h-full min-h-[150px] flex items-center justify-center border-2 border-dashed border-red-950/20 rounded-3xl p-6 text-red-900/20 uppercase tracking-widest text-[10px]">
+                          {language === 'pt' ? 'Vago' : 'Vacant'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-center">
+                      {top3[2] ? renderRecord(top3[2], 2) : (
+                        <div className="w-full h-full min-h-[150px] flex items-center justify-center border-2 border-dashed border-red-950/20 rounded-3xl p-6 text-red-900/20 uppercase tracking-widest text-[10px]">
+                          {language === 'pt' ? 'Vago' : 'Vacant'}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <Trophy size={20} className={i === 0 ? 'text-yellow-500' : 'text-yellow-900/40'} />
-                </div>
-              )) : (
-                <div className="text-center py-12 text-yellow-900/40 uppercase tracking-widest text-xs">
-                  {language === 'pt' ? 'Nenhum recorde ainda' : 'No records yet'}
+                </>
+              ) : (
+                <div className="text-center py-20 text-red-900/40 uppercase tracking-[0.5em] text-sm font-cinzel">
+                  {language === 'pt' ? 'Nenhum recorde lendário' : 'No legendary records'}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        <GothicButton onClick={onBack} className="border-yellow-600/50 text-yellow-500 hover:border-yellow-400">
-          {language === 'pt' ? 'Voltar' : 'Back'}
-        </GothicButton>
-      </div>
+            <div className="mt-12 w-full max-w-xs">
+              <GothicButton onClick={onBack} className="border-red-900/50 text-red-600 hover:text-red-500 hover:border-red-600">
+                {language === 'pt' ? 'Voltar' : 'Back'}
+              </GothicButton>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
@@ -548,59 +675,69 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
             </div>
 
             <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-              {POWER_UPS.map((pu) => {
-                const discountedCost = getPowerUpCost(pu.cost);
-                const purchaseCount = purchases[pu.type] || 0;
-                const limit = isSpeedRun ? 99 : 2;
-                const isLimitReached = !isSpeedRun && purchaseCount >= limit;
+              {isSpeedRun ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                  <Lock className="text-red-500/50" size={48} />
+                  <p className="text-sm text-zinc-400 uppercase tracking-[0.2em] font-bold">
+                    {language === 'pt' ? 'Mercado Fechado em Speed Run' : 'Market Closed in Speed Run'}
+                  </p>
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
+                    {language === 'pt' ? 'Poderes são proibidos neste ritual' : 'Power-ups are forbidden in this ritual'}
+                  </p>
+                </div>
+              ) : (
+                POWER_UPS.map((pu) => {
+                  const discountedCost = getPowerUpCost(pu.cost);
+                  const purchaseCount = purchases[pu.type] || 0;
+                  const limit = 2;
+                  const isLimitReached = purchaseCount >= limit;
 
-                return (
-                  <div 
-                    key={pu.type}
-                    className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-[var(--color-secondary)]/20 hover:border-[var(--color-primary)]/30 transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-[var(--color-primary)]/20 rounded-xl text-[var(--color-primary)] group-hover:scale-110 transition-transform">
-                        <pu.icon size={24} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-white">{t(pu.name, language)}</h3>
-                          {!isSpeedRun && (
+                  return (
+                    <div 
+                      key={pu.type}
+                      className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-[var(--color-secondary)]/20 hover:border-[var(--color-primary)]/30 transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-[var(--color-primary)]/20 rounded-xl text-[var(--color-primary)] group-hover:scale-110 transition-transform">
+                          <pu.icon size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-white">{t(pu.name, language)}</h3>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isLimitReached ? 'border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-zinc-700 text-zinc-500'}`}>
                               {purchaseCount}/{limit}
                             </span>
-                          )}
+                          </div>
+                          <p className="text-xs text-gray-500">{t(pu.description, language)}</p>
                         </div>
-                        <p className="text-xs text-gray-500">{t(pu.description, language)}</p>
                       </div>
+                      <button
+                        onClick={() => {
+                          if (onBuy(pu.type, pu.cost)) {
+                            audioService.playSound('buy');
+                            onClose();
+                          }
+                        }}
+                        disabled={bloodCoins < discountedCost || isLimitReached}
+                        className={`
+                          flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
+                          ${(bloodCoins >= discountedCost && !isLimitReached)
+                            ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-accent)] shadow-lg shadow-[var(--color-primary)]/20' 
+                            : 'bg-zinc-800 text-gray-600 cursor-not-allowed'}
+                        `}
+                      >
+                        <Coins size={14} />
+                        <div className="flex flex-col items-end">
+                          {discountedCost < pu.cost && (
+                            <span className="text-[10px] line-through text-gray-500 leading-none">{pu.cost}</span>
+                          )}
+                          <span>{discountedCost}</span>
+                        </div>
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        if (onBuy(pu.type, pu.cost)) {
-                          audioService.playSound('buy');
-                          onClose();
-                        }
-                      }}
-                      disabled={bloodCoins < discountedCost || isLimitReached}
-                      className={`
-                        flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all
-                        ${(bloodCoins >= discountedCost && !isLimitReached)
-                          ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-accent)] shadow-lg shadow-[var(--color-primary)]/20' 
-                          : 'bg-zinc-800 text-gray-600 cursor-not-allowed'}
-                      `}
-                    >
-                      <Coins size={14} />
-                      <div className="flex flex-col items-end">
-                        {discountedCost < pu.cost && (
-                          <span className="text-[10px] line-through text-gray-500 leading-none">{pu.cost}</span>
-                        )}
-                        <span>{discountedCost}</span>
-                      </div>
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             <div className="p-4 bg-black/40 border-t border-[var(--color-secondary)]/30 flex justify-between items-center">
@@ -967,7 +1104,7 @@ export const IntroScreen = ({
                   onClick={onOpenSpeedRunStats} 
                   className="border-yellow-600/30 text-yellow-600 hover:text-yellow-500 text-sm"
                 >
-                  {language === 'pt' ? 'Recordes (Top 10)' : 'Records (Top 10)'}
+                  {language === 'pt' ? 'Recordes (Top 3)' : 'Records (Top 3)'}
                 </GothicButton>
                 <button 
                   onClick={() => setShowSpeedRunMenu(false)}

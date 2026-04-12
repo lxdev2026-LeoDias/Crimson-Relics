@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX, Timer } from 'lucide-react';
+import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX, Timer, LogOut, Eye, Cloud } from 'lucide-react';
 import { LevelGoal, PlayerStats, PowerUpType, Relic, LocalizedString, Language, Achievement, SpeedRunRecord, ExportOptions } from '../types';
-import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE } from '../constants';
+import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE, RESOLUTIONS } from '../constants';
 import { audioService } from '../services/audioService';
 
 const RELIC_ICONS: Record<string, any> = {
@@ -31,6 +31,187 @@ const BloodSea = () => (
     ))}
   </div>
 );
+
+const SeaOfBloodEnhanced = ({ isRising }: { isRising: boolean }) => {
+  return (
+    <div className="absolute bottom-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+      {/* Deep Blood Layer */}
+      <motion.div 
+        animate={{ 
+          height: isRising ? '60%' : '25%',
+          transition: { duration: 5, ease: "easeInOut" }
+        }}
+        className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-red-950 via-red-900 to-red-800/40 backdrop-blur-sm"
+      />
+
+      {/* Wave 1 */}
+      <motion.div
+        animate={{ 
+          x: ["-25%", "0%"],
+          y: [0, 15, 0],
+          height: isRising ? '65%' : '32%'
+        }}
+        transition={{ 
+          x: { duration: 12, repeat: Infinity, ease: "linear" },
+          y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+          height: { duration: 5, ease: "easeInOut" }
+        }}
+        className="absolute bottom-0 left-0 w-[200%] opacity-60"
+      >
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-900/80 filter drop-shadow-[0_0_20px_rgba(220,38,38,0.6)]">
+          <path d="M0,60 C150,110 350,10 500,60 C650,110 850,10 1000,60 C1150,110 1350,10 1500,60 L1500,120 L0,120 Z" />
+        </svg>
+      </motion.div>
+
+      {/* Wave 2 */}
+      <motion.div
+        animate={{ 
+          x: ["0%", "-25%"],
+          y: [10, -10, 10],
+          height: isRising ? '62%' : '29%'
+        }}
+        transition={{ 
+          x: { duration: 18, repeat: Infinity, ease: "linear" },
+          y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+          height: { duration: 5, ease: "easeInOut" }
+        }}
+        className="absolute bottom-0 left-0 w-[200%] opacity-40"
+      >
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-800/60">
+          <path d="M0,80 C200,30 400,130 600,80 C800,30 1000,130 1200,80 L1200,120 L0,120 Z" />
+        </svg>
+      </motion.div>
+
+      {/* Rising Bubbles from Sea */}
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+          key={`sea-bubble-${i}`}
+          initial={{ x: `${Math.random() * 100}%`, y: "100%", opacity: 0 }}
+          animate={{ 
+            y: ["100%", `${20 + Math.random() * 40}%`],
+            opacity: [0, 0.6, 0],
+            scale: [0.5, 1.2, 0.8]
+          }}
+          transition={{ 
+            duration: 3 + Math.random() * 4,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+            ease: "easeOut"
+          }}
+          className="absolute w-3 h-3 rounded-full border border-red-500/30 bg-red-600/10 blur-[1px]"
+        />
+      ))}
+
+      {/* Mist/Particles */}
+      <div className="absolute bottom-0 left-0 w-full h-full">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ x: Math.random() * 100 + "%", y: "100%", opacity: 0 }}
+            animate={{ 
+              y: ["100%", (Math.random() * 50 + 20) + "%"],
+              opacity: [0, 0.4, 0],
+              scale: [1, 1.5, 2]
+            }}
+            transition={{ 
+              duration: Math.random() * 5 + 5,
+              repeat: Infinity,
+              delay: Math.random() * 10
+            }}
+            className="absolute w-32 h-32 bg-red-600/10 rounded-full blur-3xl"
+          />
+        ))}
+      </div>
+
+      {/* Shadows/Hands (Rare) */}
+      {isRising && (
+        <div className="absolute inset-0 flex items-center justify-around opacity-20">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: [100, -20, 100], opacity: [0, 1, 0] }}
+              transition={{ duration: 4, delay: i * 0.8, repeat: Infinity }}
+            >
+              <Ghost size={64} className="text-black" />
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AtmosphereLayers = () => (
+  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    {/* Constant Floating Particles */}
+    {[...Array(40)].map((_, i) => (
+      <motion.div
+        key={i}
+        initial={{ 
+          x: Math.random() * 100 + "%", 
+          y: Math.random() * 100 + "%", 
+          opacity: 0,
+          scale: Math.random() * 0.5 + 0.5
+        }}
+        animate={{ 
+          y: ["-10%", "110%"],
+          opacity: [0, 0.3, 0],
+          x: (Math.random() * 100) + "%"
+        }}
+        transition={{ 
+          duration: Math.random() * 20 + 20,
+          repeat: Infinity,
+          ease: "linear",
+          delay: Math.random() * -20
+        }}
+        className="absolute w-1 h-1 bg-red-500 rounded-full blur-[1px]"
+      />
+    ))}
+
+    {/* Horizontal Mist */}
+    <motion.div 
+      animate={{ x: ["-100%", "100%"] }}
+      transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+      className="absolute top-1/4 left-0 w-full h-1/2 bg-gradient-to-r from-transparent via-red-900/5 to-transparent blur-3xl"
+    />
+    <motion.div 
+      animate={{ x: ["100%", "-100%"] }}
+      transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
+      className="absolute top-1/2 left-0 w-full h-1/2 bg-gradient-to-r from-transparent via-red-900/5 to-transparent blur-3xl"
+    />
+
+    {/* Ambient Lighting */}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+  </div>
+);
+
+const MouseTrail = ({ mousePos }: { mousePos: { x: number, y: number } }) => {
+  const [trail, setTrail] = useState<{ id: number, x: number, y: number }[]>([]);
+
+  useEffect(() => {
+    const id = Date.now();
+    setTrail(prev => [...prev.slice(-15), { id, x: mousePos.x, y: mousePos.y }]);
+  }, [mousePos]);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-50">
+      <AnimatePresence>
+        {trail.map(p => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0.6, scale: 1 }}
+            animate={{ opacity: 0, scale: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            style={{ left: p.x, top: p.y }}
+            className="absolute w-2 h-2 bg-red-600 rounded-full blur-[2px] -translate-x-1/2 -translate-y-1/2"
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const FlamingSkull = ({ size, isWarning }: { size: number, isWarning: boolean }) => (
   <div className="relative flex items-center justify-center">
@@ -156,7 +337,7 @@ export const HUD = ({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsTitleSelectorOpen(false)}
-                        className="fixed inset-0 z-[1999] bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 z-[1999] bg-black/40 backdrop-blur-sm"
                       />
                       
                       <motion.div
@@ -330,9 +511,23 @@ export const GameplayPanel = ({
   );
 };
 
-export const ProgressPanel = ({ score, playerStats }: SidePanelProps) => {
+export const ProgressPanel = ({ score, playerStats, currentMatchScore }: SidePanelProps) => {
   const lang = playerStats.language;
   const progressToRelic = ((playerStats.level - 1) % 10) * 10;
+  
+  const [flyingPoints, setFlyingPoints] = useState<{ id: number, value: number }[]>([]);
+  const [lastMatchScore, setLastMatchScore] = useState(0);
+
+  useEffect(() => {
+    if (currentMatchScore === 0 && lastMatchScore > 0) {
+      const id = Date.now();
+      setFlyingPoints(prev => [...prev, { id, value: lastMatchScore }]);
+      setTimeout(() => {
+        setFlyingPoints(prev => prev.filter(p => p.id !== id));
+      }, 800);
+    }
+    setLastMatchScore(currentMatchScore);
+  }, [currentMatchScore, lastMatchScore]);
 
   return (
     <div className="flex flex-col gap-8 w-80 h-[600px] p-8 bg-zinc-950/60 rounded-[3rem] border border-red-900/40 backdrop-blur-xl card-glow relative overflow-hidden">
@@ -344,9 +539,14 @@ export const ProgressPanel = ({ score, playerStats }: SidePanelProps) => {
           </span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-5xl font-black text-zinc-100 tabular-nums drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
+          <motion.span 
+            key={score}
+            initial={{ scale: 1 }}
+            animate={{ scale: [1, 1.1, 1] }}
+            className="text-5xl font-black text-zinc-100 tabular-nums drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]"
+          >
             {score.toLocaleString()}
-          </span>
+          </motion.span>
         </div>
       </div>
 
@@ -369,10 +569,61 @@ export const ProgressPanel = ({ score, playerStats }: SidePanelProps) => {
               className="h-full bg-gradient-to-r from-red-900 to-red-500 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] progress-glow"
             />
           </div>
-          <div className="text-center">
+          <div className="text-center relative">
             <span className="text-sm font-black text-red-500 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(220,38,38,0.4)]">
               {progressToRelic}%
             </span>
+
+            {/* Real-time Score Display */}
+            <AnimatePresence>
+              {currentMatchScore > 0 && (
+                <motion.div
+                  key="real-time-score"
+                  initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1, 
+                    y: 0,
+                    x: [0, -3, 3, -3, 3, 0],
+                  }}
+                  exit={{ opacity: 0, scale: 1.5 }}
+                  className="absolute top-full left-0 right-0 mt-4 flex justify-center"
+                >
+                  <motion.span 
+                    key={currentMatchScore}
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      rotate: [0, -2, 2, -2, 2, 0]
+                    }}
+                    className="text-4xl font-black text-red-500 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] italic"
+                  >
+                    +{currentMatchScore.toLocaleString()}
+                  </motion.span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Flying Points Animation */}
+            <AnimatePresence>
+              {flyingPoints.map(fp => (
+                <motion.div
+                  key={fp.id}
+                  initial={{ opacity: 1, scale: 1, y: 20, x: "-50%" }}
+                  animate={{ 
+                    opacity: 0, 
+                    scale: 0.5, 
+                    y: -350, // Fly up towards the total score
+                    x: "-50%"
+                  }}
+                  transition={{ duration: 0.8, ease: "circIn" }}
+                  className="absolute left-1/2 pointer-events-none z-50"
+                >
+                  <span className="text-4xl font-black text-red-500 drop-shadow-[0_0_15px_rgba(220,38,38,0.6)]">
+                    +{fp.value.toLocaleString()}
+                  </span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -398,7 +649,7 @@ export const FinalLoreScreen = ({ onStart, language }: ScreenProps) => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto"
+      className="absolute inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto"
     >
       <div className="max-w-2xl w-full flex flex-col items-center text-center">
         <motion.div
@@ -532,7 +783,7 @@ export const SpeedRunStats = ({ speedRunRecords = [], language, onBack }: { last
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl overflow-hidden"
+      className="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl overflow-hidden"
     >
       {/* Background Particles */}
       <div className="absolute inset-0 pointer-events-none opacity-30">
@@ -654,7 +905,7 @@ export const Shop = ({ isOpen, onClose, bloodCoins, language, onBuy, getPowerUpC
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
@@ -795,13 +1046,21 @@ const BloodDrop = ({ delay = 0, left = "50%" }: { delay?: number; left?: string 
 
 const GothicButton = ({ onClick, children, className = "", icon: Icon }: { onClick: () => void, children: React.ReactNode, className?: string, icon?: any }) => (
   <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.97 }}
+    whileHover={{ 
+      scale: 1.05,
+      boxShadow: "0 0 20px rgba(220, 38, 38, 0.4)",
+      textShadow: "0 0 8px rgba(220, 38, 38, 0.8)"
+    }}
+    whileTap={{ 
+      scale: 0.95,
+      x: [0, -2, 2, -2, 0],
+      transition: { duration: 0.1 }
+    }}
     onClick={() => {
       audioService.playSound('click');
       onClick();
     }}
-    className={`gothic-button w-full px-12 py-4 rounded-lg flex items-center justify-center gap-4 group font-cinzel text-[#ff3333] tracking-widest uppercase font-bold ${className}`}
+    className={`gothic-button w-full px-12 py-4 rounded-lg flex items-center justify-center gap-4 group font-cinzel text-[#ff3333] tracking-widest uppercase font-bold transition-all duration-300 ${className}`}
   >
     <div className="gothic-button-ornament tl" />
     <div className="gothic-button-ornament tr" />
@@ -816,23 +1075,40 @@ const GothicButton = ({ onClick, children, className = "", icon: Icon }: { onCli
 );
 
 const BloodBubble = ({ x, y, onComplete }: { x: number, y: number, onComplete: () => void }) => {
+  const [isRare] = useState(Math.random() > 0.9);
+  const [transformation, setTransformation] = useState<'eye' | 'rune' | 'shadow' | null>(null);
+  const onCompleteRef = useRef(onComplete);
+
   useEffect(() => {
-    const timer = setTimeout(onComplete, 1200);
-    return () => clearTimeout(timer);
+    onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isRare) {
+        const types: ('eye' | 'rune' | 'shadow')[] = ['eye', 'rune', 'shadow'];
+        setTransformation(types[Math.floor(Math.random() * types.length)]);
+        setTimeout(() => onCompleteRef.current(), 3000); // Fade out after 3s
+      } else {
+        onCompleteRef.current();
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [isRare]);
 
   return (
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
       animate={{ 
-        scale: [0, 1.2, 1], 
-        opacity: [0, 0.8, 0.6],
+        scale: transformation ? 1.2 : [0, 1.2, 1], 
+        opacity: transformation ? 1 : [0, 0.8, 0.6],
+        y: transformation ? -20 : 0
       }}
       exit={{ 
-        scale: 2, 
+        scale: transformation ? 0.5 : 2, 
         opacity: 0,
         filter: "blur(10px)",
-        transition: { duration: 0.3 }
+        transition: { duration: 0.5 }
       }}
       style={{ 
         position: 'absolute',
@@ -843,13 +1119,28 @@ const BloodBubble = ({ x, y, onComplete }: { x: number, y: number, onComplete: (
         marginLeft: -24,
         marginTop: -24,
       }}
-      className="rounded-full bg-gradient-to-br from-red-500/60 to-red-900/80 border border-red-400/40 backdrop-blur-[2px] pointer-events-none z-50 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+      className={`flex items-center justify-center rounded-full pointer-events-none z-50 transition-colors duration-500 ${
+        transformation 
+          ? 'bg-transparent' 
+          : 'bg-gradient-to-br from-red-500/60 to-red-900/80 border border-red-400/40 backdrop-blur-[2px] shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+      }`}
     >
-      {/* Inner shine */}
-      <div className="absolute top-2 left-2 w-3 h-3 bg-white/30 rounded-full blur-[1px]" />
+      {!transformation ? (
+        <div className="absolute top-2 left-2 w-3 h-3 bg-white/30 rounded-full blur-[1px]" />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.8)]"
+        >
+          {transformation === 'eye' && <Eye size={32} className="animate-pulse" />}
+          {transformation === 'rune' && <div className="text-2xl font-black archaic-text">ᚱ</div>}
+          {transformation === 'shadow' && <Ghost size={32} className="opacity-60" />}
+        </motion.div>
+      )}
       
-      {/* Explosion particles */}
-      {[...Array(8)].map((_, i) => (
+      {/* Explosion particles (only if not transforming) */}
+      {!transformation && [...Array(8)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-red-600 rounded-full"
@@ -864,6 +1155,221 @@ const BloodBubble = ({ x, y, onComplete }: { x: number, y: number, onComplete: (
         />
       ))}
     </motion.div>
+  );
+};
+
+const BloodRain = () => {
+  const [wind, setWind] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWind(Math.random() * 40 - 20); // Random wind gust
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
+      {[...Array(100)].map((_, i) => {
+        const size = Math.random() > 0.8 ? 3 : 1.5;
+        const duration = 0.5 + Math.random() * 0.5;
+        const delay = Math.random() * 2;
+        const left = Math.random() * 120 - 10;
+        
+        return (
+          <motion.div
+            key={i}
+            initial={{ y: -20, x: `${left}%`, opacity: 0 }}
+            animate={{ 
+              y: ["0vh", "110vh"],
+              x: [`${left}%`, `${left + wind}%`],
+              opacity: [0, 0.6, 0]
+            }}
+            transition={{ 
+              duration, 
+              repeat: Infinity, 
+              delay,
+              ease: "linear"
+            }}
+            style={{ 
+              width: size, 
+              height: size * 8,
+              background: 'linear-gradient(to bottom, transparent, #991b1b)'
+            }}
+            className="absolute rounded-full blur-[0.5px]"
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+const Fireballs = () => {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
+      {[...Array(3)].map((_, i) => {
+        const startX = Math.random() > 0.5 ? -20 : 120;
+        const endX = startX === -20 ? 120 : -20;
+        const startY = Math.random() * 80;
+        const endY = Math.random() * 80;
+        const duration = 2 + Math.random() * 3;
+        const delay = Math.random() * 10;
+
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: `${startX}%`, y: `${startY}%`, opacity: 0, scale: 0 }}
+            animate={{ 
+              x: `${endX}%`, 
+              y: `${endY}%`,
+              opacity: [0, 1, 1, 0],
+              scale: [0.5, 1.2, 1.2, 0.5],
+              rotate: 360
+            }}
+            transition={{ 
+              duration, 
+              repeat: Infinity, 
+              delay,
+              ease: "easeInOut"
+            }}
+            className="absolute w-16 h-16"
+          >
+            <div className="absolute inset-0 bg-orange-600 rounded-full blur-xl animate-pulse" />
+            <div className="absolute inset-2 bg-yellow-400 rounded-full blur-md" />
+            <div className="absolute -inset-4 bg-red-600/30 rounded-full blur-2xl" />
+            {/* Tail */}
+            <motion.div 
+              animate={{ scale: [1, 1.5, 1] }}
+              transition={{ duration: 0.2, repeat: Infinity }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-8 bg-gradient-to-r from-orange-600 to-transparent blur-lg origin-left"
+              style={{ rotate: startX < endX ? 0 : 180 }}
+            />
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
+const RandomEvents = ({ event, mousePos }: { event: string | null, mousePos: { x: number, y: number } }) => {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-20">
+      <AnimatePresence>
+        {event === 'rain' && <BloodRain />}
+        {event === 'fireballs' && <Fireballs />}
+        {(event === 'eyes' || event === 'follow') && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0"
+          >
+            {[...Array(6)].map((_, i) => {
+              const x = 20 + (i * 13) % 60;
+              const y = 20 + (i * 17) % 60;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                  style={{ 
+                    left: `${x}%`, 
+                    top: `${y}%` 
+                  }}
+                  className="absolute flex gap-2"
+                >
+                  <motion.div 
+                    animate={event === 'follow' ? {
+                      x: (mousePos.x - (window.innerWidth * x / 100)) * 0.02,
+                      y: (mousePos.y - (window.innerHeight * y / 100)) * 0.02,
+                    } : {}}
+                    className="w-4 h-2 bg-red-600 rounded-full shadow-[0_0_10px_red]" 
+                  />
+                  <motion.div 
+                    animate={event === 'follow' ? {
+                      x: (mousePos.x - (window.innerWidth * x / 100)) * 0.02,
+                      y: (mousePos.y - (window.innerHeight * y / 100)) * 0.02,
+                    } : {}}
+                    className="w-4 h-2 bg-red-600 rounded-full shadow-[0_0_10px_red]" 
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {event === 'glitch' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ 
+              opacity: [0, 0.8, 0, 0.8, 0],
+              x: [0, -10, 10, -5, 0],
+              filter: ["none", "hue-rotate(90deg)", "none", "invert(1)", "none"]
+            }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-red-600/10 mix-blend-overlay z-[200]"
+          />
+        )}
+
+        {event === 'rune' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 2, rotate: 0 }}
+            animate={{ 
+              opacity: [0, 0.4, 0], 
+              scale: [2, 1.5, 2],
+              rotate: [0, 10, -10, 0]
+            }}
+            transition={{ duration: 2 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl font-black archaic-text text-red-900/20"
+          >
+            {['ᚦ', 'ᚱ', 'ᚼ', 'ᚿ', 'ᛅ', 'ᛋ'][Math.floor(Math.random() * 6)]}
+          </motion.div>
+        )}
+
+        {event === 'special' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/80 z-[100] flex items-center justify-center"
+          >
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1], 
+                opacity: [0.3, 0.6, 0.3],
+                filter: ["blur(0px)", "blur(4px)", "blur(0px)"]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <Skull size={400} className="text-red-950/20" />
+            </motion.div>
+            <div className="grid grid-cols-4 gap-12">
+              {[...Array(12)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    y: [0, -10, 0]
+                  }}
+                  transition={{ duration: 2, delay: i * 0.2, repeat: Infinity }}
+                >
+                  <Eye size={48} className="text-red-600" />
+                </motion.div>
+              ))}
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute bottom-20 text-red-900 font-cinzel text-2xl tracking-[1em] uppercase"
+            >
+              Sanguis Est Vita
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -893,7 +1399,7 @@ export const SpeedRunSetupModal = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+          className="absolute inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
@@ -992,6 +1498,85 @@ export const IntroScreen = ({
 }: ScreenProps) => {
   const [bubbles, setBubbles] = useState<{ id: number, x: number, y: number }[]>([]);
   const [showSpeedRunMenu, setShowSpeedRunMenu] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [currentEvent, setCurrentEvent] = useState<string | null>(null);
+  const [isSeaRising, setIsSeaRising] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [idleTimer, setIdleTimer] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeSpent(prev => prev + 1);
+      setIdleTimer(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Random Event System
+    const eventInterval = setInterval(() => {
+      if (currentEvent) return;
+
+      const baseChance = 0.1 + (timeSpent / 600); // Frequency increases with time
+      const roll = Math.random();
+
+      if (roll < baseChance) {
+        const events = ['eyes', 'follow', 'glitch', 'rune', 'mist', 'shake', 'rain', 'fireballs'];
+        if (roll < 0.01) events.push('special');
+        
+        const selectedEvent = events[Math.floor(Math.random() * events.length)];
+        
+        if (selectedEvent === 'shake') {
+          setCurrentEvent('shake');
+          setTimeout(() => setCurrentEvent(null), 500);
+        } else if (selectedEvent === 'mist') {
+          setIsSeaRising(true);
+          setTimeout(() => setIsSeaRising(false), 8000);
+        } else if (selectedEvent === 'special') {
+          setCurrentEvent('special');
+          audioService.playSound('ritual_complete');
+          setTimeout(() => setCurrentEvent(null), 10000);
+        } else {
+          setCurrentEvent(selectedEvent);
+          if (Math.random() < 0.3) audioService.playSound('laugh');
+          setTimeout(() => setCurrentEvent(null), 3000);
+        }
+
+        // Randomly freeze
+        if (Math.random() < 0.05) {
+          setIsFrozen(true);
+          setTimeout(() => setIsFrozen(false), 1000);
+        }
+      }
+    }, 5000);
+
+    // Initial random events on visit
+    const initialRoll = Math.random();
+    if (initialRoll < 0.5) {
+      const initialEvents = ['eyes', 'mist', 'rune', 'rain', 'fireballs'];
+      const event = initialEvents[Math.floor(Math.random() * initialEvents.length)];
+      if (event === 'mist') {
+        setIsSeaRising(true);
+        setTimeout(() => setIsSeaRising(false), 8000);
+      } else {
+        setCurrentEvent(event);
+        setTimeout(() => setCurrentEvent(null), 3000);
+      }
+      if (Math.random() < 0.5) audioService.playSound('laugh');
+    }
+
+    return () => clearInterval(eventInterval);
+  }, [timeSpent, currentEvent]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({ 
+      x: e.clientX - rect.left, 
+      y: e.clientY - rect.top 
+    });
+    setIdleTimer(0);
+  };
 
   const handleBackgroundClick = (e: React.MouseEvent) => {
     // Don't spawn bubble if clicking on a button or interactive element
@@ -1008,17 +1593,50 @@ export const IntroScreen = ({
     audioService.playSound('bubble');
   };
 
-  const removeBubble = (id: number) => {
+  const removeBubble = useCallback((id: number) => {
     setBubbles(prev => prev.filter(b => b.id !== id));
+  }, []);
+
+  const handleExit = () => {
+    if (confirm(language === 'pt' ? 'Deseja realmente sair do ritual?' : 'Do you really want to leave the ritual?')) {
+      window.close();
+      setTimeout(() => {
+        window.location.href = "about:blank";
+      }, 500);
+    }
   };
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ 
+        opacity: isFrozen ? 0.8 : 1,
+        filter: isFrozen ? 'grayscale(1) contrast(2)' : 'none',
+        x: currentEvent === 'shake' ? [0, -5, 5, -5, 5, 0] : 0,
+        y: currentEvent === 'shake' ? [0, 5, -5, 5, -5, 0] : 0
+      }}
+      onMouseMove={handleMouseMove}
       onClick={handleBackgroundClick}
       className="relative flex flex-col items-center justify-center text-center p-4 min-h-screen w-full overflow-hidden cursor-crosshair"
     >
+      {/* Background Layers */}
+      <AtmosphereLayers />
+      <SeaOfBloodEnhanced isRising={isSeaRising} />
+      <MouseTrail mousePos={mousePos} />
+      <RandomEvents event={currentEvent} mousePos={mousePos} />
+
+      {/* Idle Effect near mouse */}
+      {idleTimer > 5 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          style={{ left: mousePos.x, top: mousePos.y }}
+          className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2"
+        >
+          <Eye size={24} className="text-red-900 animate-pulse" />
+        </motion.div>
+      )}
+
       <AnimatePresence>
         {bubbles.map(bubble => (
           <BloodBubble 
@@ -1032,18 +1650,27 @@ export const IntroScreen = ({
 
       <motion.div
         initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        animate={{ 
+          y: 0, 
+          opacity: 1,
+          scale: 1 + Math.sin(timeSpent * 0.5) * 0.01 // Subtle pulse
+        }}
         transition={{ delay: 0.2 }}
         className="mb-16 relative z-10"
       >
-        <div className="relative">
+        <div className="relative group">
           <h1 
             data-text="Crimson Relics"
-            className="text-8xl md:text-9xl mb-4 metallic-title tracking-[0.2em]"
+            className="text-8xl md:text-9xl mb-4 metallic-title tracking-[0.2em] relative z-10"
           >
             Crimson Relics
           </h1>
           
+          {/* Title Reflection */}
+          <div className="absolute top-full left-0 w-full opacity-20 scale-y-[-0.8] blur-md pointer-events-none select-none">
+            <h1 className="text-8xl md:text-9xl metallic-title tracking-[0.2em]">Crimson Relics</h1>
+          </div>
+
           {/* Blood Dripping Effect */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <BloodDrop left="15%" delay={0.5} />
@@ -1130,68 +1757,10 @@ export const IntroScreen = ({
         <GothicButton onClick={onOpenAchievements || (() => {})} icon={Medal}>
           {language === 'pt' ? 'Conquistas' : 'Achievements'}
         </GothicButton>
-      </div>
 
-      
-      {/* Sea of Blood Bottom Section */}
-      <div className="absolute bottom-0 left-0 w-full h-48 overflow-hidden pointer-events-none z-0">
-        {/* Wave Layer 1 */}
-        <motion.div
-          animate={{ 
-            x: ["-25%", "0%"],
-            y: [0, 5, 0]
-          }}
-          transition={{ 
-            x: { duration: 10, repeat: Infinity, ease: "linear" },
-            y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-          }}
-          className="absolute bottom-0 left-0 w-[200%] h-full opacity-60"
-        >
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-900/80">
-            <path d="M0,60 C150,100 350,20 500,60 C650,100 850,20 1000,60 C1150,100 1350,20 1500,60 L1500,120 L0,120 Z" />
-          </svg>
-        </motion.div>
-
-        {/* Wave Layer 2 */}
-        <motion.div
-          animate={{ 
-            x: ["0%", "-25%"],
-            y: [5, 0, 5]
-          }}
-          transition={{ 
-            x: { duration: 15, repeat: Infinity, ease: "linear" },
-            y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-          }}
-          className="absolute bottom-0 left-0 w-[200%] h-full opacity-40"
-        >
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-800/60">
-            <path d="M0,80 C200,40 400,120 600,80 C800,40 1000,120 1200,80 L1200,120 L0,120 Z" />
-          </svg>
-        </motion.div>
-
-        {/* Surface Glow/Mist */}
-        <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-red-950/80 to-transparent" />
-        
-        {/* Bubbles/Drops in the sea */}
-        {[...Array(30)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ 
-              y: [100, -20],
-              opacity: [0, 0.6, 0],
-              scale: [0.4, 1.2, 0.8]
-            }}
-            transition={{ 
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 10,
-              ease: "easeOut"
-            }}
-            className="absolute w-1.5 h-1.5 bg-red-400 rounded-full blur-[0.5px]"
-            style={{ left: `${Math.random() * 100}%` }}
-          />
-        ))}
+        <GothicButton onClick={handleExit} icon={LogOut} className="border-zinc-800 text-zinc-500 hover:border-red-900 hover:text-red-700">
+          {language === 'pt' ? 'Sair do Jogo' : 'Exit Game'}
+        </GothicButton>
       </div>
     </motion.div>
   );
@@ -1204,7 +1773,7 @@ export const LoreScreen = ({ onStart, onSkipLore, language }: { onStart: () => v
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-6"
+      className="absolute inset-0 z-[100] flex items-center justify-center bg-black/90 p-6"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -1279,7 +1848,11 @@ export const OptionsModal = ({
   musicEnabled,
   sfxEnabled,
   onToggleMusic,
-  onToggleSfx
+  onToggleSfx,
+  resolution,
+  onSetResolution,
+  fullscreen,
+  onSetFullscreen
 }: { 
   isOpen: boolean, 
   onClose: () => void, 
@@ -1291,9 +1864,14 @@ export const OptionsModal = ({
   musicEnabled: boolean,
   sfxEnabled: boolean,
   onToggleMusic: (enabled: boolean) => void,
-  onToggleSfx: (enabled: boolean) => void
+  onToggleSfx: (enabled: boolean) => void,
+  resolution: string,
+  onSetResolution: (res: string) => void,
+  fullscreen: boolean,
+  onSetFullscreen: (enabled: boolean) => void
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResolutionDropdownOpen, setIsResolutionDropdownOpen] = useState(false);
 
   return (
     <AnimatePresence>
@@ -1302,7 +1880,7 @@ export const OptionsModal = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+          className="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
@@ -1384,6 +1962,68 @@ export const OptionsModal = ({
                     {sfxEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                     {currentLanguage === 'pt' ? 'Efeitos' : 'SFX'}
                   </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-xs uppercase tracking-widest text-[var(--color-primary)] font-bold block">
+                  {currentLanguage === 'pt' ? 'Vídeo' : 'Video'}
+                </label>
+                <div className="space-y-3">
+                  {/* Fullscreen Toggle */}
+                  <button
+                    onClick={() => {
+                      const newState = !fullscreen;
+                      onSetFullscreen(newState);
+                      audioService.playSound('click');
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl font-bold transition-all border-2 flex items-center justify-center gap-2 ${
+                      fullscreen 
+                        ? 'bg-red-900/40 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' 
+                        : 'bg-black/40 border-zinc-800 text-gray-500 hover:border-red-900/50'
+                    }`}
+                  >
+                    {fullscreen ? <Check size={16} /> : null}
+                    {currentLanguage === 'pt' ? 'Tela Cheia' : 'Fullscreen'}
+                  </button>
+
+                  {/* Resolution Selection */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsResolutionDropdownOpen(!isResolutionDropdownOpen)}
+                      className="w-full px-4 py-3 rounded-xl font-bold transition-all border-2 bg-black/40 border-zinc-800 text-white flex items-center justify-between hover:border-red-900/50"
+                    >
+                      <span>{resolution}</span>
+                      <Settings size={16} className="text-red-500" />
+                    </button>
+
+                    <AnimatePresence>
+                      {isResolutionDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute bottom-full left-0 w-full mb-2 bg-zinc-900 border-2 border-red-900 rounded-xl overflow-hidden z-[120] shadow-2xl"
+                        >
+                          {RESOLUTIONS.map((res) => (
+                            <button
+                              key={res.label}
+                              onClick={() => {
+                                onSetResolution(`${res.width}x${res.height}`);
+                                setIsResolutionDropdownOpen(false);
+                                audioService.playSound('click');
+                              }}
+                              className={`w-full px-4 py-3 text-left hover:bg-red-900/20 transition-colors text-sm font-bold ${
+                                resolution === `${res.width}x${res.height}` ? 'text-red-500' : 'text-gray-400'
+                              }`}
+                            >
+                              {res.label}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
@@ -1701,7 +2341,7 @@ export const ExportModal = ({ isOpen, onClose, onConfirm, language }: {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+          className="absolute inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20, opacity: 0 }}
@@ -1820,7 +2460,7 @@ export const RelicUnlockScreen = ({ relic, onStart, language }: { relic: Relic, 
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-4"
+      className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl p-4"
     >
       <motion.div
         initial={{ scale: 0.5, rotate: -10, opacity: 0 }}
@@ -1991,7 +2631,7 @@ export const PowerUpNotification = ({ notification, language }: { notification: 
           initial={{ opacity: 0, scale: 0.5, y: 50 }}
           animate={{ opacity: 1, scale: 1.2, y: 0 }}
           exit={{ opacity: 0, scale: 1.5, y: -50 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 z-[200] flex items-center justify-center pointer-events-none"
         >
           <div className="relative">
             {/* Glow Effect */}
@@ -2047,7 +2687,7 @@ export const LowMovesWarning = ({ moves }: { moves: number }) => {
           animate={{ opacity: 1, scale: 3, rotate: 0 }}
           exit={{ opacity: 0, scale: 5, rotate: 10 }}
           transition={{ duration: 0.8, ease: "backOut" }}
-          className="fixed inset-0 z-[300] flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none"
         >
           <span 
             className="text-red-600 font-black archaic-text drop-shadow-[0_0_30px_rgba(220,38,38,0.8)]"

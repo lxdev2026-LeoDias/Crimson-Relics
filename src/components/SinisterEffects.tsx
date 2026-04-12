@@ -59,7 +59,7 @@ export const SinisterEffects = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
       <AnimatePresence>
         {activeEffects.map(effect => {
           const EffectIcon = EFFECTS[effect.type].icon;
@@ -92,7 +92,7 @@ export const SinisterEffects = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.4, 0] }}
             transition={{ duration: 0.5 }}
-            className="fixed inset-0 bg-red-950/5 mix-blend-overlay"
+            className="absolute inset-0 bg-red-950/5 mix-blend-overlay"
           />
         )}
       </AnimatePresence>

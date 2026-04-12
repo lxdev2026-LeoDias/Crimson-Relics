@@ -278,7 +278,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'score_500k',
     name: { en: 'Apotheosis of the Crimson God', pt: 'Apoteose do Deus Carmesim' },
-    description: { en: 'Reach 50,000 points in a single Ritual', pt: 'Alcance 500.000 pontos em um único Ritual' },
+    description: { en: 'Reach 500,000 points in a single Ritual', pt: 'Alcance 500.000 pontos em um único Ritual' },
     title: { en: 'The Absolute Essence', pt: 'A Essência Absoluta' },
     icon: 'Crown'
   },
@@ -288,6 +288,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: { en: 'Complete Speed Run mode in less than 10 minutes', pt: 'Complete o modo Speed Run em menos de 10 minutos' },
     title: { en: 'The Sanguine Flash', pt: 'O Clarão Sanguíneo' },
     icon: 'Hourglass'
+  },
+  {
+    id: 'combo_100k',
+    name: { en: 'Crimson Cataclysm', pt: 'Cataclismo Carmesim' },
+    description: { en: 'Reach 100,000 points in a single combo sequence', pt: 'Alcance 100.000 pontos em uma única sequência de combo' },
+    title: { en: 'Harbinger of the Apocalypse', pt: 'Arauto do Apocalipse' },
+    icon: 'Flame'
   },
   {
     id: 'game_complete',
@@ -387,3 +394,10 @@ export const SCORE_MATCH_5_MULT = 4;
 export const SCORE_SHAPE_BONUS = 3.0; // +200% for L/T shapes
 
 export const COMBO_MULTIPLIERS = [1, 3.5, 4.5, 5.5, 6.5, 7.5];
+ 
+export const RESOLUTIONS = [
+  { width: 1280, height: 720, label: '1280x720 (HD)' },
+  { width: 1920, height: 1080, label: '1920x1080 (Full HD)' },
+  { width: 2560, height: 1440, label: '2560x1440 (2K)' },
+  { width: 3840, height: 2160, label: '3840x2160 (4K)' },
+];

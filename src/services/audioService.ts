@@ -17,7 +17,9 @@ export type SoundEffect =
   | 'buy'
   | 'lightning'
   | 'bubble'
-  | 'ghost';
+  | 'ghost'
+  | 'ritual_complete'
+  | 'laugh';
 
 class AudioService {
   private isMuted: boolean = false;
@@ -195,6 +197,45 @@ class AudioService {
         gain.connect(masterGain);
         noise.start();
         noise.stop(ctx.currentTime + 0.5);
+        break;
+      }
+
+      case 'ritual_complete': {
+        const notes = [110, 164.81, 220, 329.63, 440]; // Dark rising chords
+        notes.forEach((freq, i) => {
+          const t = ctx.currentTime + i * 0.2;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, t);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 1);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 1);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(t);
+          osc.stop(t + 1);
+        });
+        break;
+      }
+
+      case 'laugh': {
+        const now = ctx.currentTime;
+        // Sinister laugh: series of descending pitches with noise
+        for (let i = 0; i < 5; i++) {
+          const t = now + i * 0.15;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200 - i * 20, t);
+          osc.frequency.exponentialRampToValueAtTime(50, t + 0.3);
+          gain.gain.setValueAtTime(0.1, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(t);
+          osc.stop(t + 0.3);
+        }
         break;
       }
 

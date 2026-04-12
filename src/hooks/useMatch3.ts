@@ -46,6 +46,8 @@ export const useMatch3 = () => {
           speedRunRecords: stats.speedRunRecords || [],
           musicEnabled: stats.musicEnabled !== undefined ? stats.musicEnabled : true,
           sfxEnabled: stats.sfxEnabled !== undefined ? stats.sfxEnabled : true,
+          resolution: stats.resolution || '1920x1080',
+          fullscreen: stats.fullscreen || false,
         };
       } catch (e) {
         console.error('Failed to parse saved stats', e);
@@ -64,6 +66,8 @@ export const useMatch3 = () => {
       speedRunRecords: [],
       musicEnabled: true,
       sfxEnabled: true,
+      resolution: '1920x1080',
+      fullscreen: false,
     };
   });
 
@@ -73,6 +77,14 @@ export const useMatch3 = () => {
 
   const setSelectedTitle = useCallback((titleId: string) => {
     setPlayerStats(prev => ({ ...prev, selectedTitleId: titleId }));
+  }, []);
+
+  const setResolution = useCallback((res: string) => {
+    setPlayerStats(prev => ({ ...prev, resolution: res }));
+  }, []);
+
+  const setFullscreen = useCallback((enabled: boolean) => {
+    setPlayerStats(prev => ({ ...prev, fullscreen: enabled }));
   }, []);
 
   const unlockAchievement = useCallback((id: string) => {
@@ -633,8 +645,15 @@ export const useMatch3 = () => {
     if (matches.length === 0) {
       // End of sequence: transfer accumulatedScore to main score
       if (accumulatedScore > 0) {
-        setScore(s => s + accumulatedScore);
+        if (accumulatedScore >= 100000) {
+          unlockAchievement('combo_100k');
+        }
+        // Trigger flying animation by setting currentMatchScore to 0
         setCurrentMatchScore(0);
+        // Delay adding to total score to match animation
+        setTimeout(() => {
+          setScore(s => s + accumulatedScore);
+        }, 800);
       }
       setIsProcessing(false);
       setComboCount(0);
@@ -859,12 +878,12 @@ export const useMatch3 = () => {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const matches = findMatches(nextGrid);
-    const isSpecialTrigger = p1.specialType !== 'none' || p2.specialType !== 'none';
     
-    if (matches.length > 0 || isSpecialTrigger) {
+    if (matches.length > 0) {
       setMoves(m => m - 1);
       await processMatches(nextGrid);
     } else {
+      audioService.playSound('invalid');
       const backGrid = grid.map(row => [...row]);
       setGrid(backGrid);
       setIsProcessing(false);
@@ -1292,6 +1311,8 @@ export const useMatch3 = () => {
     importSave,
     setLanguage,
     setSelectedTitle,
+    setResolution,
+    setFullscreen,
     initLevel,
     handlePieceClick,
     getPowerUpCost,

@@ -75,6 +75,8 @@ export interface PlayerStats {
   speedRunRecords?: SpeedRunRecord[];
   musicEnabled?: boolean;
   sfxEnabled?: boolean;
+  resolution?: string; // e.g., "1920x1080"
+  fullscreen?: boolean;
 }
 
 export interface Achievement {

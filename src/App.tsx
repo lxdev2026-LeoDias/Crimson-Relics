@@ -38,6 +38,7 @@ export default function App() {
     powerUpNotification,
     lastComboText,
     comboCount,
+    mistakeCount,
     isShaking,
     hintPiece,
     effects,
@@ -68,13 +69,14 @@ export default function App() {
     cancelSpeedRun,
     setMusicEnabled,
     setSfxEnabled,
+    unlockAchievement,
   } = useMatch3();
 
   const [currentLevelTime, setCurrentLevelTime] = useState(0);
   const [totalSpeedRunTime, setTotalSpeedRunTime] = useState(0);
   const [scale, setScale] = useState(1);
 
-  // Resolution and Fullscreen logic
+  // Resolution logic
   useEffect(() => {
     const handleResize = () => {
       const baseWidth = 1920;
@@ -83,7 +85,7 @@ export default function App() {
       let targetWidth = window.innerWidth;
       let targetHeight = window.innerHeight;
 
-      if (!playerStats.fullscreen && playerStats.resolution) {
+      if (playerStats.resolution) {
         const [w, h] = playerStats.resolution.split('x').map(Number);
         targetWidth = w;
         targetHeight = h;
@@ -98,42 +100,7 @@ export default function App() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [playerStats.resolution, playerStats.fullscreen]);
-
-  // Fullscreen toggle via keys
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.altKey && e.key === 'Enter') || e.key === 'F11') {
-        e.preventDefault();
-        const newState = !playerStats.fullscreen;
-        setFullscreen(newState);
-        
-        if (newState) {
-          document.documentElement.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-          });
-        } else if (document.fullscreenElement) {
-          document.exitFullscreen();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playerStats.fullscreen, setFullscreen]);
-
-  // Sync fullscreen state if changed externally (e.g. Esc key)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!document.fullscreenElement;
-      if (isCurrentlyFullscreen !== playerStats.fullscreen) {
-        setFullscreen(isCurrentlyFullscreen);
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [playerStats.fullscreen, setFullscreen]);
+  }, [playerStats.resolution]);
 
   useEffect(() => {
     if (playerStats.musicEnabled) {
@@ -220,42 +187,18 @@ export default function App() {
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden font-sans select-none bg-black">
       {/* Scaling Container */}
       <div 
-        className="relative flex items-center justify-center transition-transform duration-300 ease-out"
-        style={{ 
+        className={`relative flex items-center justify-center transition-all duration-500 ease-out ${
+          gameState === 'playing' ? '' : 'w-full h-full'
+        }`}
+        style={gameState === 'playing' ? { 
           width: '1920px', 
           height: '1080px', 
           transform: `scale(${scale})`,
           transformOrigin: 'center center'
-        }}
+        } : {}}
       >
-        {/* Background Atmosphere */}
-        <div className="absolute inset-0 z-0 pointer-events-none bg-black">
-          {/* Fog effect */}
-          <div className="absolute inset-0 opacity-20 mix-blend-overlay">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-          </div>
-          <div className="mist-container">
-            <div className="mist" />
-          </div>
-          <div className="particles-container">
-            {Array.from({ length: PARTICLES_COUNT }).map((_, i) => (
-              <div 
-                key={i} 
-                className="particle" 
-                style={{ 
-                  left: `${Math.random() * 100}%`,
-                  width: `${Math.random() * 4 + 1}px`,
-                  height: `${Math.random() * 4 + 1}px`,
-                  '--duration': `${Math.random() * 10 + 10}s`,
-                  animationDelay: `${Math.random() * 10}s`
-                } as any} 
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Sinister Visual Effects */}
-        <SinisterEffects />
+        {/* Sinister Visual Effects - Only in Intro */}
+        {gameState === 'intro' && <SinisterEffects />}
 
         {/* Combo Feedback */}
         <ComboFeedback text={lastComboText} comboCount={comboCount} />
@@ -368,6 +311,7 @@ export default function App() {
                   currentLevelTime={currentLevelTime}
                   totalSpeedRunTime={totalSpeedRunTime}
                   speedRunCoins={speedRunCoins}
+                  onExplodeEntity={() => unlockAchievement('shadow_explosion')}
                 />
                 
                 <div className="flex flex-col xl:flex-row items-center xl:items-start justify-center gap-6 w-full max-w-[1600px]">
@@ -379,10 +323,12 @@ export default function App() {
                       score={score}
                       currentMatchScore={currentMatchScore}
                       comboCount={comboCount}
+                      mistakeCount={mistakeCount}
                       isSpeedRun={isSpeedRun}
                       levelTimes={speedRunTimers}
                       currentLevelTime={currentLevelTime}
                       speedRunLevelIndex={speedRunLevelIndex}
+                      onExplodeEntity={() => unlockAchievement('shadow_explosion')}
                     />
                   </div>
 
@@ -527,8 +473,6 @@ export default function App() {
           onToggleSfx={setSfxEnabled}
           resolution={playerStats.resolution || '1920x1080'}
           onSetResolution={setResolution}
-          fullscreen={playerStats.fullscreen || false}
-          onSetFullscreen={setFullscreen}
         />
 
         <ExportModal

@@ -97,7 +97,7 @@ export const GridEffects = ({ effects, gridSize }: GridEffectsProps) => {
             )}
 
             {effect.type === 'soaked' && (
-              <div className="fixed inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: [0, 0.5, 0] }}

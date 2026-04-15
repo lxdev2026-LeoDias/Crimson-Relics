@@ -120,6 +120,7 @@ export const useMatch3 = () => {
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType | null>(null);
   const [bloodyTwinFirstType, setBloodyTwinFirstType] = useState<PieceType | null>(null);
   const [comboCount, setComboCount] = useState(0);
+  const [mistakeCount, setMistakeCount] = useState(0);
   const [lastComboText, setLastComboText] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
   const [newRelicUnlocked, setNewRelicUnlocked] = useState<Relic | null>(null);
@@ -756,10 +757,12 @@ export const useMatch3 = () => {
       setComboCount(currentCombo);
       
       if (currentCombo > 1) {
-        if (currentCombo >= 6) unlockAchievement('combo_x6');
+        if (currentCombo >= 10) unlockAchievement('combo_x10');
+        else if (currentCombo >= 6) unlockAchievement('combo_x6');
+        
         const comboText = playerStats.language === 'pt' 
-          ? (currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
-          : (currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
+          ? (currentCombo >= 10 ? 'CALAMIDADE ABISSAL' : currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
+          : (currentCombo >= 10 ? 'ABYSSAL CALAMITY' : currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
         setLastComboText(comboText);
       }
 
@@ -884,6 +887,7 @@ export const useMatch3 = () => {
       await processMatches(nextGrid);
     } else {
       audioService.playSound('invalid');
+      setMistakeCount(prev => prev + 1);
       const backGrid = grid.map(row => [...row]);
       setGrid(backGrid);
       setIsProcessing(false);
@@ -1299,6 +1303,7 @@ export const useMatch3 = () => {
     playerStats,
     activePowerUp,
     comboCount,
+    mistakeCount,
     lastComboText,
     isShaking,
     newRelicUnlocked,
@@ -1355,5 +1360,6 @@ export const useMatch3 = () => {
     },
     setMusicEnabled,
     setSfxEnabled,
+    unlockAchievement,
   };
 };

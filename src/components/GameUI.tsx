@@ -186,14 +186,55 @@ const AtmosphereLayers = () => (
   </div>
 );
 
-const MouseTrail = ({ mousePos }: { mousePos: { x: number, y: number } }) => {
-  const [trail, setTrail] = useState<{ id: number, x: number, y: number }[]>([]);
+const GothicWalls = () => (
+  <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+    {/* Left Wall */}
+    <div className="absolute left-0 top-0 h-full w-[20%] xl:w-[25%]">
+      <div className="absolute inset-0 bg-zinc-950 shadow-[inset_-20px_0_60px_rgba(0,0,0,1)]" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/brick-wall.png')] opacity-40 mix-blend-overlay" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
+      
+      {/* Sinister Symbols */}
+      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-10">
+        <Skull size={80} className="text-red-900 blur-[1px]" />
+        <div className="text-red-900 font-cinzel text-7xl rotate-90 tracking-[0.5em] select-none font-black">ᚱᚢᚾᛖᛋ</div>
+        <Eye size={64} className="text-red-900 animate-pulse" />
+        <div className="text-red-900 font-cinzel text-7xl -rotate-90 tracking-[0.5em] select-none font-black">ᛒᛚᛟᛟᛞ</div>
+        <Skull size={80} className="text-red-900 blur-[1px]" />
+      </div>
+      
+      {/* Depth Shadow */}
+      <div className="absolute top-0 right-0 w-16 h-full bg-gradient-to-l from-black to-transparent" />
+      
+      {/* Occasional Blood Drip on wall */}
+      <div className="absolute top-1/4 left-1/2 w-[2px] h-40 bg-gradient-to-b from-red-900/0 via-red-600/20 to-red-900/0 blur-[1px] animate-pulse" />
+    </div>
 
-  useEffect(() => {
-    const id = Date.now();
-    setTrail(prev => [...prev.slice(-15), { id, x: mousePos.x, y: mousePos.y }]);
-  }, [mousePos]);
+    {/* Right Wall */}
+    <div className="absolute right-0 top-0 h-full w-[20%] xl:w-[25%]">
+      <div className="absolute inset-0 bg-zinc-950 shadow-[inset_20px_0_60px_rgba(0,0,0,1)]" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/brick-wall.png')] opacity-40 mix-blend-overlay" />
+      <div className="absolute inset-0 bg-gradient-to-l from-black via-transparent to-transparent" />
+      
+      {/* Sinister Symbols */}
+      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-10">
+        <Skull size={80} className="text-red-900 blur-[1px]" />
+        <div className="text-red-900 font-cinzel text-7xl -rotate-90 tracking-[0.5em] select-none font-black">ᛞᚨᚱᚲ</div>
+        <Eye size={64} className="text-red-900 animate-pulse" />
+        <div className="text-red-900 font-cinzel text-7xl rotate-90 tracking-[0.5em] select-none font-black">ᛋᛟᚢᛚ</div>
+        <Skull size={80} className="text-red-900 blur-[1px]" />
+      </div>
 
+      {/* Depth Shadow */}
+      <div className="absolute top-0 left-0 w-16 h-full bg-gradient-to-r from-black to-transparent" />
+      
+      {/* Occasional Blood Drip on wall */}
+      <div className="absolute top-1/3 right-1/2 w-[2px] h-40 bg-gradient-to-b from-red-900/0 via-red-600/20 to-red-900/0 blur-[1px] animate-pulse" />
+    </div>
+  </div>
+);
+
+const MouseTrail = ({ trail }: { trail: { id: number, x: number, y: number }[] }) => {
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
       <AnimatePresence>
@@ -237,6 +278,7 @@ interface HUDProps {
   currentLevelTime?: number;
   totalSpeedRunTime?: number;
   speedRunCoins?: number;
+  onExplodeEntity?: () => void;
 }
 
 const t = (str: LocalizedString | string, lang: Language) => {
@@ -257,7 +299,8 @@ export const HUD = ({
   speedRunLevelIndex,
   currentLevelTime,
   totalSpeedRunTime,
-  speedRunCoins
+  speedRunCoins,
+  onExplodeEntity
 }: HUDProps) => {
   const lang = playerStats.language;
   const [isTitleSelectorOpen, setIsTitleSelectorOpen] = useState(false);
@@ -414,25 +457,345 @@ export const HUD = ({
   );
 };
 
+interface ShadowEntityProps {
+  comboCount: number;
+  mistakeCount: number;
+  language: Language;
+  onExplode?: () => void;
+  level: number;
+}
+
+const ShadowEntity = ({ comboCount, mistakeCount, language, onExplode, level }: ShadowEntityProps) => {
+  const [state, setState] = useState<'idle' | 'low' | 'medium' | 'high' | 'extreme' | 'mistake' | 'angry' | 'exploded' | 'hungry' | 'recovering'>('idle');
+  const [message, setMessage] = useState<string | null>(null);
+  const [idleTime, setIdleTime] = useState(0);
+  const [clickCount, setClickCount] = useState(0);
+  const [lastExplosionTime, setLastExplosionTime] = useState(0);
+  const [hasShownReturnMessage, setHasShownReturnMessage] = useState(false);
+  const [hasExplodedThisLevel, setHasExplodedThisLevel] = useState(false);
+  const lastComboRef = useRef(0);
+  const lastMistakeRef = useRef(0);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const phrases = {
+    idle: language === 'pt' ? 
+      [
+        'Estou esperando...', 'Não pare...', 'O tempo urge...', 'humm...', 'ham?', 'grrrr...', 
+        'Sinto o cheiro do medo...', 'O vazio observa...', 'O silêncio é ensurdecedor.',
+        'Vai chover hoje? Sangue, talvez...', 'Você já assistiu "True Blood?" É muito bom... nutritivo.',
+        'The Walking Dead... Ah The Walking Dead... sinto falta do cheiro de carne fresca.',
+        'American... Horror... Story? Minha vida é um horror constante.',
+        'PANIC MUAHAHAHA! O medo é o melhor tempero.', '13 friday? hum... meu dia favorito.',
+        'Onde está o seu Deus agora?', 'Sinto o gosto da sua alma... um pouco salgada.',
+        'Você já viu o que tem debaixo da sua cama?', 'O escuro não é o problema... é o que vive nele.'
+      ] : 
+      [
+        'I am waiting...', 'Do not stop...', 'Time is pressing...', 'humm...', 'ham?', 'grrrr...', 
+        'I smell fear...', 'The void watches...', 'The silence is deafening.',
+        'Will it rain today? Blood, perhaps...', 'Have you watched "True Blood?" It is very good... nutritious.',
+        'The Walking Dead... Ah The Walking Dead... I miss the smell of fresh meat.',
+        'American... Horror... Story? My life is a constant horror.',
+        'PANIC MUAHAHAHA! Fear is the best seasoning.', '13 friday? hum... my favorite day.',
+        'Where is your God now?', 'I can taste your soul... a bit salty.',
+        'Have you seen what is under your bed?', 'The dark is not the problem... it is what lives in it.'
+      ],
+    hungry: language === 'pt' ?
+      ['ESTOU COM FOME...', 'CADÊ O SANGUE?', 'NÃO ME DEIXE ESPERAR!', 'A SEDE AUMENTA...', 'ALIMENTE O VAZIO!'] :
+      ['I AM HUNGRY...', 'WHERE IS THE BLOOD?', 'DO NOT MAKE ME WAIT!', 'THE THIRST GROWS...', 'FEED THE VOID!'],
+    low: language === 'pt' ? ['Foi só isso?', 'Mais...', 'Fraco.', 'Apenas um começo.', 'Um pequeno sacrifício.'] : ['Was that all?', 'More...', 'Weak.', 'Just a beginning.', 'A small sacrifice.'],
+    medium: language === 'pt' ? ['Interessante...', 'Continue...', 'Sinta o poder.', 'A essência flui.', 'Seu potencial desperta.'] : ['Interesting...', 'Continue...', 'Feel the power.', 'The essence flows.', 'Your potential awakens.'],
+    high: language === 'pt' ? ['MAIS!', 'ALIMENTE-ME!', 'ISSO!', 'SANGUE!', 'MAGNÍFICO!', 'A ESCURIDÃO SE REGALEIA!'] : ['MORE!', 'FEED ME!', 'YES!', 'BLOOD!', 'MAGNIFICENT!', 'THE DARKNESS FEASTS!'],
+    extreme: language === 'pt' ? ['BRUTAL', 'CARNIFICINA', 'DESTRUIDOR DE ALMAS', 'APOCALIPSE', 'DIVINDADE SOMBRIA', 'O CAOS REINA'] : ['BRUTAL', 'CARNAGE', 'SOUL DESTROYER', 'APOCALYPSE', 'DARK DIVINITY', 'CHAOS REIGNS'],
+    mistake: language === 'pt' ? ['Decepcionante...', 'Fraqueza...', 'Tolo.', 'Errar é humano... e patético.', 'Minha paciência tem limites.'] : ['Disappointing...', 'Weakness...', 'Fool.', 'To err is human... and pathetic.', 'My patience has limits.'],
+    annoyed: language === 'pt' ? ['Pare com isso.', 'Não me toque.', 'O que você quer?', 'Saia daqui.', 'Isso é irritante.'] : ['Stop that.', 'Do not touch me.', 'What do you want?', 'Get away.', 'This is annoying.'],
+    angry: language === 'pt' ? ['VOCÊ OUSA?!', 'CHEGA!', 'VOU TE DESTRUIR!', 'NÃO ME PROVOQUE!', 'SUA ALMA SERÁ MINHA!'] : ['YOU DARE?!', 'ENOUGH!', 'I WILL DESTROY YOU!', 'DO NOT PROVOKE ME!', 'YOUR SOUL WILL BE MINE!'],
+    laugh: language === 'pt' ? ['HAHAHAHA!', 'Você achou que se livraria de mim?', 'O sangue me fortalece!', 'Tolo mortal!', 'Eu sou eterno!'] : ['HAHAHAHA!', 'Did you think you would get rid of me?', 'The blood strengthens me!', 'Foolish mortal!', 'I am eternal!'],
+    recovering: language === 'pt' ? ['Estou me recompondo...', 'Aguarde...', 'O sangue voltará.', 'Minha forma é eterna.'] : ['I am recovering...', 'Wait...', 'The blood will return.', 'My form is eternal.'],
+  };
+
+  const handleClick = () => {
+    if (state === 'exploded' || state === 'recovering') {
+      if (state === 'recovering' && !hasShownReturnMessage) {
+        setHasShownReturnMessage(true);
+        setMessage('...');
+        setTimeout(() => {
+          setMessage(language === 'pt' ? 'eu vou voltar...' : 'i will return...');
+          setTimeout(() => setMessage(null), 2000);
+        }, 1500);
+      } else if (state === 'recovering') {
+        setMessage(language === 'pt' ? 'Não agora... estou fraco.' : 'Not now... I am weak.');
+        setTimeout(() => setMessage(null), 2000);
+      }
+      return;
+    }
+
+    setIdleTime(0);
+    setClickCount(prev => prev + 1);
+
+    // Reset click count after 2 seconds of no clicking
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => setClickCount(0), 2000);
+
+    const now = Date.now();
+    const cooldown = 3 * 60 * 1000; // 3 minutes
+
+    if (clickCount >= 15) {
+      if (now - lastExplosionTime > cooldown) {
+        explode();
+      } else {
+        setState('angry');
+        setMessage(language === 'pt' ? 'AINDA NÃO... ESPERE!' : 'NOT YET... WAIT!');
+        setTimeout(() => setMessage(null), 2000);
+      }
+      return;
+    }
+
+    if (clickCount > 10) {
+      setState('angry');
+      const possiblePhrases = phrases.angry;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+    } else if (clickCount > 3) {
+      const possiblePhrases = phrases.annoyed;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+    }
+    
+    setTimeout(() => {
+      if (state === 'angry' || state === 'idle' || state === 'hungry') setMessage(null);
+    }, 2000);
+  };
+
+  const explode = (isVisualOnly: boolean = false) => {
+    setState('exploded');
+    setMessage(null);
+    setLastExplosionTime(Date.now());
+    setClickCount(0);
+    setHasExplodedThisLevel(true);
+    audioService.playSound('levelWin');
+    if (onExplode && !isVisualOnly) onExplode();
+
+    setTimeout(() => {
+      setState('recovering');
+      const possiblePhrases = phrases.laugh;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+      setTimeout(() => setMessage(null), 4000);
+      
+      // Recovery period: 3 minutes
+      setTimeout(() => {
+        setState('idle');
+      }, 3 * 60 * 1000);
+    }, 2500);
+  };
+
+  useEffect(() => {
+    setHasExplodedThisLevel(false);
+  }, [level]);
+
+  useEffect(() => {
+    if (state === 'exploded' || state === 'angry' || state === 'recovering') return;
+    if (comboCount > 0) {
+      setIdleTime(0);
+      if (comboCount >= 10) {
+        setState('extreme');
+        if (!hasExplodedThisLevel) {
+          explode(true);
+        }
+      }
+      else if (comboCount >= 7) setState('high');
+      else if (comboCount >= 4) setState('medium');
+      else setState('low');
+
+      if (comboCount > lastComboRef.current) {
+        const category = comboCount >= 10 ? 'extreme' : comboCount >= 7 ? 'high' : comboCount >= 4 ? 'medium' : 'low';
+        const possiblePhrases = phrases[category as keyof typeof phrases] as string[];
+        setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+        setTimeout(() => setMessage(null), 3000);
+      }
+      lastComboRef.current = comboCount;
+    } else {
+      lastComboRef.current = 0;
+      if (state !== 'mistake' && state !== 'hungry') setState('idle');
+    }
+  }, [comboCount, language, state]);
+
+  useEffect(() => {
+    if (state === 'exploded' || state === 'angry' || state === 'recovering') return;
+    if (mistakeCount > lastMistakeRef.current) {
+      setIdleTime(0);
+      setState('mistake');
+      const possiblePhrases = phrases.mistake;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+      setTimeout(() => {
+        setMessage(null);
+        setState('idle');
+      }, 3000);
+    }
+    lastMistakeRef.current = mistakeCount;
+  }, [mistakeCount, language, state]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIdleTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (state === 'exploded' || state === 'angry' || state === 'recovering') return;
+    
+    if (idleTime > 20 && comboCount === 0) {
+      setState('hungry');
+      const possiblePhrases = phrases.hungry;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+      setIdleTime(0);
+    } else if (idleTime > 8 && comboCount === 0 && state !== 'hungry') {
+      const possiblePhrases = phrases.idle;
+      setMessage(possiblePhrases[Math.floor(Math.random() * possiblePhrases.length)]);
+      setTimeout(() => setMessage(null), 3000);
+      setIdleTime(0);
+    }
+  }, [idleTime, comboCount, language, state]);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center relative min-h-[200px]">
+      {/* Entity Shape */}
+      <AnimatePresence>
+        {state !== 'exploded' && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: state === 'extreme' ? [1, 1.1, 1] : state === 'mistake' ? 0.8 : state === 'angry' || state === 'hungry' ? [1, 1.2, 1] : state === 'recovering' ? 0.9 : [1, 1.05, 1],
+              rotate: state === 'extreme' ? [-2, 2, -2] : state === 'angry' || state === 'hungry' ? [-5, 5, -5] : 0,
+              filter: state === 'mistake' ? 'hue-rotate(90deg) blur(10px)' : state === 'angry' || state === 'hungry' ? 'hue-rotate(-45deg) blur(5px)' : state === 'recovering' ? 'grayscale(0.8) blur(12px) opacity(0.5)' : 'hue-rotate(0deg) blur(8px)',
+              opacity: state === 'recovering' ? 0.4 : 1,
+            }}
+            exit={{ scale: 2, opacity: 0, filter: 'blur(20px) brightness(2)' }}
+            transition={{ duration: state === 'extreme' ? 0.2 : state === 'angry' || state === 'hungry' ? 0.1 : 3, repeat: state === 'idle' || state === 'extreme' || state === 'angry' || state === 'hungry' || state === 'recovering' ? Infinity : 0 }}
+            onClick={handleClick}
+            className={`w-32 h-32 rounded-full cursor-pointer pointer-events-auto bg-gradient-to-br from-red-950 via-black to-red-900/20 flex items-center justify-center relative ${
+              state === 'extreme' ? 'shadow-[0_0_80px_rgba(220,38,38,0.6)]' : 
+              state === 'angry' || state === 'hungry' ? 'shadow-[0_0_100px_rgba(255,0,0,0.8)]' : 
+              state === 'recovering' ? 'shadow-none' : 'shadow-[0_0_50px_rgba(220,38,38,0.2)]'
+            }`}
+          >
+            {/* Eyes */}
+            <div className="flex gap-8">
+              <motion.div 
+                animate={{ 
+                  scaleY: state === 'mistake' ? 0.2 : state === 'recovering' ? 0.1 : [1, 0.1, 1],
+                  x: state === 'idle' ? [0, 2, -2, 0] : state === 'angry' || state === 'hungry' ? [0, 4, -4, 0] : 0,
+                  boxShadow: state === 'extreme' || state === 'angry' || state === 'hungry' ? '0 0 20px #ff0000' : state === 'recovering' ? 'none' : '0 0 10px #990000',
+                  backgroundColor: state === 'angry' || state === 'hungry' ? '#ff0000' : state === 'recovering' ? '#330000' : '#dc2626'
+                }}
+                transition={{ 
+                  scaleY: { duration: 4, repeat: Infinity, delay: 1 },
+                  x: { duration: state === 'angry' || state === 'hungry' ? 0.2 : 5, repeat: Infinity, ease: "easeInOut" }
+                }}
+                className={`w-4 h-6 rounded-full ${state === 'mistake' ? 'bg-purple-900' : ''}`} 
+              />
+              <motion.div 
+                animate={{ 
+                  scaleY: state === 'mistake' ? 0.2 : state === 'recovering' ? 0.1 : [1, 0.1, 1],
+                  x: state === 'idle' ? [0, 2, -2, 0] : state === 'angry' || state === 'hungry' ? [0, 4, -4, 0] : 0,
+                  boxShadow: state === 'extreme' || state === 'angry' || state === 'hungry' ? '0 0 20px #ff0000' : state === 'recovering' ? 'none' : '0 0 10px #990000',
+                  backgroundColor: state === 'angry' || state === 'hungry' ? '#ff0000' : state === 'recovering' ? '#330000' : '#dc2626'
+                }}
+                transition={{ 
+                  scaleY: { duration: 4, repeat: Infinity, delay: 1.1 },
+                  x: { duration: state === 'angry' || state === 'hungry' ? 0.2 : 5, repeat: Infinity, ease: "easeInOut" }
+                }}
+                className={`w-4 h-6 rounded-full ${state === 'mistake' ? 'bg-purple-900' : ''}`} 
+              />
+            </div>
+
+            {/* Particles */}
+            {state !== 'recovering' && [...Array(state === 'extreme' || state === 'angry' || state === 'hungry' ? 16 : 8)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  y: [-20, -100],
+                  x: [0, (i % 2 === 0 ? 30 : -30)],
+                  opacity: [0, 0.5, 0],
+                  scale: [0, 1.5, 0],
+                }}
+                transition={{
+                  duration: state === 'extreme' || state === 'angry' || state === 'hungry' ? 0.8 : 3,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                }}
+                className={`absolute w-1 h-1 rounded-full ${state === 'angry' || state === 'hungry' ? 'bg-red-400' : 'bg-red-500'}`}
+                style={{ left: '50%', top: '50%' }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Blood Explosion Particles */}
+      {state === 'exploded' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
+              animate={{ 
+                x: (Math.random() - 0.5) * 300, 
+                y: (Math.random() - 0.5) * 300, 
+                scale: [0, Math.random() * 4, 0],
+                opacity: [1, 0.8, 0]
+              }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="absolute w-4 h-4 bg-red-700 rounded-full blur-[2px]"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Dynamic Text */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.2 }}
+            className={`absolute bottom-4 text-center font-cinzel font-black tracking-widest uppercase drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] ${
+              state === 'extreme' || state === 'angry' || state === 'hungry' ? 'text-amber-400 text-xl shadow-amber-500/50' : 'text-amber-200/90 text-sm'
+            }`}
+            style={{
+              textShadow: state === 'extreme' || state === 'angry' || state === 'hungry' ? '0 0 15px rgba(251, 191, 36, 0.8), 0 0 30px rgba(251, 191, 36, 0.4)' : '0 0 10px rgba(251, 191, 36, 0.5)'
+            }}
+          >
+            {message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 interface SidePanelProps {
   goals: LevelGoal[];
   playerStats: PlayerStats;
   score: number;
   currentMatchScore: number;
   comboCount: number;
+  mistakeCount?: number;
   isSpeedRun?: boolean;
   levelTimes?: number[];
   currentLevelTime?: number;
   speedRunLevelIndex?: number;
+  onExplodeEntity?: () => void;
 }
 
 export const GameplayPanel = ({ 
   goals, 
   playerStats, 
+  comboCount,
+  mistakeCount = 0,
   isSpeedRun, 
   levelTimes = [], 
   currentLevelTime = 0, 
-  speedRunLevelIndex = 0 
+  speedRunLevelIndex = 0,
+  onExplodeEntity
 }: SidePanelProps) => {
   const lang = playerStats.language;
   
@@ -477,6 +840,15 @@ export const GameplayPanel = ({
           })}
         </div>
       </div>
+
+      {/* Shadow Entity Section */}
+      <ShadowEntity 
+        comboCount={comboCount} 
+        mistakeCount={mistakeCount} 
+        language={lang} 
+        onExplode={onExplodeEntity} 
+        level={playerStats.level}
+      />
 
       {/* Speedrun Section - Integrated into Left Panel */}
       {isSpeedRun && (
@@ -1163,27 +1535,27 @@ const BloodRain = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setWind(Math.random() * 40 - 20); // Random wind gust
+      setWind(Math.random() * 20 - 10); // Random wind gust
     }, 3000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
-      {[...Array(100)].map((_, i) => {
+      {[...Array(150)].map((_, i) => {
         const size = Math.random() > 0.8 ? 3 : 1.5;
-        const duration = 0.5 + Math.random() * 0.5;
-        const delay = Math.random() * 2;
-        const left = Math.random() * 120 - 10;
+        const duration = 0.8 + Math.random() * 0.7;
+        const delay = Math.random() * 5;
+        const leftPos = Math.random() * 120 - 10;
         
         return (
           <motion.div
             key={i}
-            initial={{ y: -20, x: `${left}%`, opacity: 0 }}
+            initial={{ y: "-10%", opacity: 0 }}
             animate={{ 
-              y: ["0vh", "110vh"],
-              x: [`${left}%`, `${left + wind}%`],
-              opacity: [0, 0.6, 0]
+              y: ["0%", "110%"],
+              x: [0, wind * 10],
+              opacity: [0, 0.6, 0.6, 0]
             }}
             transition={{ 
               duration, 
@@ -1192,11 +1564,13 @@ const BloodRain = () => {
               ease: "linear"
             }}
             style={{ 
+              left: `${leftPos}%`,
               width: size, 
-              height: size * 8,
-              background: 'linear-gradient(to bottom, transparent, #991b1b)'
+              height: size * 12,
+              background: 'linear-gradient(to bottom, transparent, #991b1b)',
+              position: 'absolute'
             }}
-            className="absolute rounded-full blur-[0.5px]"
+            className="rounded-full blur-[0.5px]"
           />
         );
       })}
@@ -1281,15 +1655,15 @@ const RandomEvents = ({ event, mousePos }: { event: string | null, mousePos: { x
                 >
                   <motion.div 
                     animate={event === 'follow' ? {
-                      x: (mousePos.x - (window.innerWidth * x / 100)) * 0.02,
-                      y: (mousePos.y - (window.innerHeight * y / 100)) * 0.02,
+                      x: (mousePos.x - (window.innerWidth * (20 + (i * 13) % 60) / 100)) * 0.05,
+                      y: (mousePos.y - (window.innerHeight * (20 + (i * 17) % 60) / 100)) * 0.05,
                     } : {}}
                     className="w-4 h-2 bg-red-600 rounded-full shadow-[0_0_10px_red]" 
                   />
                   <motion.div 
                     animate={event === 'follow' ? {
-                      x: (mousePos.x - (window.innerWidth * x / 100)) * 0.02,
-                      y: (mousePos.y - (window.innerHeight * y / 100)) * 0.02,
+                      x: (mousePos.x - (window.innerWidth * (20 + (i * 13) % 60) / 100)) * 0.05,
+                      y: (mousePos.y - (window.innerHeight * (20 + (i * 17) % 60) / 100)) * 0.05,
                     } : {}}
                     className="w-4 h-2 bg-red-600 rounded-full shadow-[0_0_10px_red]" 
                   />
@@ -1497,6 +1871,7 @@ export const IntroScreen = ({
   level
 }: ScreenProps) => {
   const [bubbles, setBubbles] = useState<{ id: number, x: number, y: number }[]>([]);
+  const [trail, setTrail] = useState<{ id: number, x: number, y: number }[]>([]);
   const [showSpeedRunMenu, setShowSpeedRunMenu] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [timeSpent, setTimeSpent] = useState(0);
@@ -1516,65 +1891,79 @@ export const IntroScreen = ({
   useEffect(() => {
     // Random Event System
     const eventInterval = setInterval(() => {
-      if (currentEvent) return;
+      if (currentEvent || isSeaRising) return;
 
-      const baseChance = 0.1 + (timeSpent / 600); // Frequency increases with time
+      // Much rarer recurring events
+      const baseChance = 0.05 + (timeSpent / 1200); 
       const roll = Math.random();
 
       if (roll < baseChance) {
         const events = ['eyes', 'follow', 'glitch', 'rune', 'mist', 'shake', 'rain', 'fireballs'];
-        if (roll < 0.01) events.push('special');
+        if (roll < 0.005) events.push('special');
         
         const selectedEvent = events[Math.floor(Math.random() * events.length)];
         
         if (selectedEvent === 'shake') {
           setCurrentEvent('shake');
-          setTimeout(() => setCurrentEvent(null), 500);
+          setTimeout(() => setCurrentEvent(null), 1000);
         } else if (selectedEvent === 'mist') {
+          setCurrentEvent('mist');
           setIsSeaRising(true);
-          setTimeout(() => setIsSeaRising(false), 8000);
+          setTimeout(() => {
+            setIsSeaRising(false);
+            setCurrentEvent(null);
+          }, 8000);
         } else if (selectedEvent === 'special') {
           setCurrentEvent('special');
           audioService.playSound('ritual_complete');
           setTimeout(() => setCurrentEvent(null), 10000);
+        } else if (selectedEvent === 'rain') {
+          setCurrentEvent('rain');
+          if (Math.random() < 0.3) audioService.playSound('laugh');
+          setTimeout(() => setCurrentEvent(null), 10000);
         } else {
           setCurrentEvent(selectedEvent);
           if (Math.random() < 0.3) audioService.playSound('laugh');
-          setTimeout(() => setCurrentEvent(null), 3000);
+          setTimeout(() => setCurrentEvent(null), 4000);
         }
 
         // Randomly freeze
-        if (Math.random() < 0.05) {
+        if (Math.random() < 0.03) {
           setIsFrozen(true);
-          setTimeout(() => setIsFrozen(false), 1000);
+          setTimeout(() => setIsFrozen(false), 1200);
         }
       }
-    }, 5000);
+    }, 15000); // Increased interval to 15s
 
-    // Initial random events on visit
+    // Initial random events on visit - 15% chance
     const initialRoll = Math.random();
-    if (initialRoll < 0.5) {
+    if (initialRoll < 0.15) {
       const initialEvents = ['eyes', 'mist', 'rune', 'rain', 'fireballs'];
       const event = initialEvents[Math.floor(Math.random() * initialEvents.length)];
       if (event === 'mist') {
+        setCurrentEvent('mist');
         setIsSeaRising(true);
-        setTimeout(() => setIsSeaRising(false), 8000);
+        setTimeout(() => {
+          setIsSeaRising(false);
+          setCurrentEvent(null);
+        }, 8000);
       } else {
         setCurrentEvent(event);
-        setTimeout(() => setCurrentEvent(null), 3000);
+        setTimeout(() => setCurrentEvent(null), 4000);
       }
       if (Math.random() < 0.5) audioService.playSound('laugh');
     }
 
     return () => clearInterval(eventInterval);
-  }, [timeSpent, currentEvent]);
+  }, [timeSpent, currentEvent, isSeaRising]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({ 
-      x: e.clientX - rect.left, 
-      y: e.clientY - rect.top 
-    });
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMousePos({ x, y });
+    setTrail(prev => [...prev.slice(-20), { id: Date.now() + Math.random(), x, y }]);
     setIdleTimer(0);
   };
 
@@ -1617,12 +2006,13 @@ export const IntroScreen = ({
       }}
       onMouseMove={handleMouseMove}
       onClick={handleBackgroundClick}
-      className="relative flex flex-col items-center justify-center text-center p-4 min-h-screen w-full overflow-hidden cursor-crosshair"
+      className="relative flex flex-col items-center justify-center text-center min-h-screen w-full overflow-hidden cursor-crosshair"
     >
       {/* Background Layers */}
       <AtmosphereLayers />
+      <GothicWalls />
       <SeaOfBloodEnhanced isRising={isSeaRising} />
-      <MouseTrail mousePos={mousePos} />
+      <MouseTrail trail={trail} />
       <RandomEvents event={currentEvent} mousePos={mousePos} />
 
       {/* Idle Effect near mouse */}
@@ -1850,9 +2240,7 @@ export const OptionsModal = ({
   onToggleMusic,
   onToggleSfx,
   resolution,
-  onSetResolution,
-  fullscreen,
-  onSetFullscreen
+  onSetResolution
 }: { 
   isOpen: boolean, 
   onClose: () => void, 
@@ -1866,9 +2254,7 @@ export const OptionsModal = ({
   onToggleMusic: (enabled: boolean) => void,
   onToggleSfx: (enabled: boolean) => void,
   resolution: string,
-  onSetResolution: (res: string) => void,
-  fullscreen: boolean,
-  onSetFullscreen: (enabled: boolean) => void
+  onSetResolution: (res: string) => void
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResolutionDropdownOpen, setIsResolutionDropdownOpen] = useState(false);
@@ -1970,23 +2356,6 @@ export const OptionsModal = ({
                   {currentLanguage === 'pt' ? 'Vídeo' : 'Video'}
                 </label>
                 <div className="space-y-3">
-                  {/* Fullscreen Toggle */}
-                  <button
-                    onClick={() => {
-                      const newState = !fullscreen;
-                      onSetFullscreen(newState);
-                      audioService.playSound('click');
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl font-bold transition-all border-2 flex items-center justify-center gap-2 ${
-                      fullscreen 
-                        ? 'bg-red-900/40 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' 
-                        : 'bg-black/40 border-zinc-800 text-gray-500 hover:border-red-900/50'
-                    }`}
-                  >
-                    {fullscreen ? <Check size={16} /> : null}
-                    {currentLanguage === 'pt' ? 'Tela Cheia' : 'Fullscreen'}
-                  </button>
-
                   {/* Resolution Selection */}
                   <div className="relative">
                     <button

@@ -41,7 +41,7 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
           <div 
             className="relative overflow-hidden rounded-[28px] border border-red-900/40"
             style={{ 
-              width: 'min(75vw, 75vh, 800px)',
+              width: 'min(67.68vw, 67.68vh, 722px)',
               aspectRatio: '1/1'
             }}
           >
@@ -60,7 +60,6 @@ export const GridComponent = ({ grid, selectedPiece, isProcessing, isShaking, hi
           {grid.flat().filter((p): p is NonNullable<typeof p> => p !== null).map((piece) => (
             <motion.div
               key={piece.id}
-              layout
               initial={{ scale: 0, opacity: 0 }}
               animate={{ 
                 scale: 1, 

@@ -241,6 +241,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: 'Trophy'
   },
   {
+    id: 'combo_x10',
+    name: { en: 'Calamity of the Abyss', pt: 'Calamidade do Abismo' },
+    description: { en: 'Reach a Combo x10 or more', pt: 'Alcance um Combo x10 ou mais' },
+    title: { en: 'Harbinger of Ruin', pt: 'Arauto da Ruína' },
+    icon: 'Zap'
+  },
+  {
     id: 'score_100k',
     name: { en: 'Eternal Sovereign of Blood', pt: 'Soberano Eterno do Sangue' },
     description: { en: 'Reach 100,000 points in a single Ritual', pt: 'Alcance 100.000 pontos em um único Ritual' },
@@ -302,6 +309,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: { en: 'Complete level 100 and revive the Dark Lord', pt: 'Complete o nível 100 e reviva o Lorde das Trevas' },
     title: { en: 'Lord of Shadows', pt: 'Senhor das Sombras' },
     icon: 'Crown'
+  },
+  {
+    id: 'shadow_explosion',
+    name: { en: 'The Annoying One', pt: 'O Irritante' },
+    description: { en: '???', pt: '???' },
+    title: { en: 'The Annoying', pt: 'O Irritante' },
+    icon: 'Zap'
   }
 ];
 

@@ -20,7 +20,6 @@ export const PieceComponent = ({ type, isSelected, isHint, isProcessing, special
 
   return (
     <motion.div
-      layout
       initial={{ scale: 0, opacity: 0, rotate: -45 }}
       animate={{ 
         scale: isSelected ? 1.1 : (isHint ? [1, 1.1, 1] : 1), 

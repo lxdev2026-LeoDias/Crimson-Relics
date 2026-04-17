@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Grid, Piece, PieceType, Position, Level, LevelGoal, PlayerStats, PowerUpType, Relic, Language, SpecialType, Achievement, LocalizedString, ExportOptions, SpeedRunRecord } from '../types';
-import { GRID_SIZE, PIECE_TYPES, SCORE_BASE, SCORE_MATCH_4_MULT, SCORE_MATCH_5_MULT, SCORE_SHAPE_BONUS, COMBO_MULTIPLIERS, LEVELS, RELICS, ACHIEVEMENTS, POWER_UPS, SPEEDRUN_LEVELS } from '../constants';
+import { GRID_SIZE, PIECE_TYPES, SCORE_BASE, SCORE_MATCH_4_MULT, SCORE_MATCH_5_MULT, SCORE_SHAPE_BONUS, COMBO_MULTIPLIERS, LEVELS, RELICS, ACHIEVEMENTS, POWER_UPS, SPEEDRUN_LEVELS, RELIC_MAX_LEVELS, RELIC_UPGRADE_INCREMENTS } from '../constants';
 import { GridEffect } from '../components/GridEffects';
 import { audioService } from '../services/audioService';
 
@@ -48,6 +48,7 @@ export const useMatch3 = () => {
           sfxEnabled: stats.sfxEnabled !== undefined ? stats.sfxEnabled : true,
           resolution: stats.resolution || '1920x1080',
           fullscreen: stats.fullscreen || false,
+          relicLevels: stats.relicLevels || {},
         };
       } catch (e) {
         console.error('Failed to parse saved stats', e);
@@ -68,6 +69,7 @@ export const useMatch3 = () => {
       sfxEnabled: true,
       resolution: '1920x1080',
       fullscreen: false,
+      relicLevels: {},
     };
   });
 
@@ -123,7 +125,7 @@ export const useMatch3 = () => {
   const [mistakeCount, setMistakeCount] = useState(0);
   const [lastComboText, setLastComboText] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
-  const [newRelicUnlocked, setNewRelicUnlocked] = useState<Relic | null>(null);
+  const [relicNotification, setRelicNotification] = useState<{relic: Relic, level: number} | null>(null);
   const [achievementNotification, setAchievementNotification] = useState<Achievement | null>(null);
   const [powerUpNotification, setPowerUpNotification] = useState<{ name: LocalizedString, color: string } | null>(null);
   const [hintPiece, setHintPiece] = useState<Position | null>(null);
@@ -145,10 +147,17 @@ export const useMatch3 = () => {
     const relicsToUse = playerStats.unlockedRelics || [];
     return relicsToUse.reduce((acc, relicId) => {
       const relic = RELICS.find(r => r.id === relicId);
-      if (relic?.effect.type === type) return acc + relic.effect.value;
+      if (relic?.effect.type === type) {
+        const baseValue = relic.effect.value;
+        const level = (playerStats.relicLevels && playerStats.relicLevels[relicId]) || 1;
+        const increment = RELIC_UPGRADE_INCREMENTS[relicId] || 0;
+        
+        // Bonus calculation: baseValue + (level - 1) * increment
+        return acc + baseValue + (level - 1) * increment;
+      }
       return acc;
     }, 0);
-  }, [playerStats.unlockedRelics, isSpeedRun]);
+  }, [playerStats.unlockedRelics, playerStats.relicLevels, isSpeedRun]);
 
   // Helper to apply gravity and refill the grid
   const applyGravityAndRefill = useCallback((currentGrid: Grid, isPowerUp: boolean = false): Grid => {
@@ -168,6 +177,11 @@ export const useMatch3 = () => {
         if (!isPowerUp) {
           const specialSpawnChance = getRelicBonus('special_spawn');
           if (Math.random() < specialSpawnChance) {
+            // New Skull Special Pieces logic for Orbe Carmesin
+            const skullTypes: SpecialType[] = ['skull_red', 'skull_blue', 'skull_green', 'skull_yellow', 'skull_orange', 'skull_silver'];
+            sType = skullTypes[Math.floor(Math.random() * skullTypes.length)];
+          } else if (Math.random() < 0.05) {
+            // Normal special spawn (row/column)
             sType = Math.random() > 0.5 ? 'row' : 'column';
           }
         }
@@ -258,6 +272,12 @@ export const useMatch3 = () => {
     }
     if (score >= 500000) {
       unlockAchievement('score_500k');
+    }
+    if (score >= 750000) {
+      unlockAchievement('score_750k');
+    }
+    if (score >= 1000000) {
+      unlockAchievement('score_1m');
     }
   }, [score, unlockAchievement]);
 
@@ -583,11 +603,11 @@ export const useMatch3 = () => {
       }
     }
 
-    if (p.specialType === 'row') {
+    if (p.specialType === 'row' || p.specialType === 'skull_yellow') {
       addEffect('arrow-h', pos);
       audioService.playSound('lightning');
       for (let c = 0; c < GRID_SIZE; c++) addPiecesToClear({ row: pos.row, col: c }, nextGrid, piecesToClear, processedInMatch, allMatchedPieces);
-    } else if (p.specialType === 'column') {
+    } else if (p.specialType === 'column' || p.specialType === 'skull_orange') {
       addEffect('arrow-v', pos);
       audioService.playSound('lightning');
       for (let r = 0; r < GRID_SIZE; r++) addPiecesToClear({ row: r, col: pos.col }, nextGrid, piecesToClear, processedInMatch, allMatchedPieces);
@@ -599,7 +619,7 @@ export const useMatch3 = () => {
           if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) addPiecesToClear({ row: r, col: c }, nextGrid, piecesToClear, processedInMatch, allMatchedPieces);
         }
       }
-    } else if (p.specialType === 'arrows') {
+    } else if (p.specialType === 'arrows' || p.specialType === 'skull_silver') {
       addEffect('arrow-h', pos);
       addEffect('arrow-v', pos);
       audioService.playSound('lightning');
@@ -634,9 +654,20 @@ export const useMatch3 = () => {
           if (nextGrid[r][c]?.type === targetType) addPiecesToClear({ row: r, col: c }, nextGrid, piecesToClear, processedInMatch, allMatchedPieces);
         }
       }
-    } else if (p.specialType === 'steps') {
+    } else if (p.specialType === 'steps' || p.specialType === 'skull_green') {
       audioService.playSound('buy');
-      setMoves(m => m + 5);
+      const moveBonus = p.specialType === 'skull_green' ? 1 : 5;
+      setMoves(m => m + moveBonus);
+      showPowerUpNotification({ en: `+${moveBonus} Move!`, pt: `+${moveBonus} Movimento!` }, '#22c55e');
+    } else if (p.specialType === 'skull_red') {
+      audioService.playSound('buy');
+      setPlayerStats(prev => ({ ...prev, bloodCoins: prev.bloodCoins + 1000 }));
+      showPowerUpNotification({ en: '+1000 Coins!', pt: '+1000 Moedas Sangrentas!' }, '#ef4444');
+    } else if (p.specialType === 'skull_blue') {
+      audioService.playSound('match');
+      const bonusScore = 5000;
+      setScore(s => s + bonusScore);
+      showPowerUpNotification({ en: '+5000 Points!', pt: '+5000 Pontos!' }, '#3b82f6');
     }
   }, [addEffect, showPowerUpNotification]);
 
@@ -757,12 +788,14 @@ export const useMatch3 = () => {
       setComboCount(currentCombo);
       
       if (currentCombo > 1) {
+        if (currentCombo >= 20) unlockAchievement('combo_x20');
+        if (currentCombo >= 15) unlockAchievement('combo_x15');
         if (currentCombo >= 10) unlockAchievement('combo_x10');
         else if (currentCombo >= 6) unlockAchievement('combo_x6');
         
         const comboText = playerStats.language === 'pt' 
-          ? (currentCombo >= 10 ? 'CALAMIDADE ABISSAL' : currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
-          : (currentCombo >= 10 ? 'ABYSSAL CALAMITY' : currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
+          ? (currentCombo >= 20 ? 'APOTEOSE DO VAZIO' : currentCombo >= 15 ? 'SINFONIA VIOLENTA' : currentCombo >= 10 ? 'CALAMIDADE ABISSAL' : currentCombo >= 6 ? 'COMBO VAMPÍRICO' : `COMBO x${currentCombo}`)
+          : (currentCombo >= 20 ? 'VOID APOTHEOSIS' : currentCombo >= 15 ? 'VIOLENT SYMPHONY' : currentCombo >= 10 ? 'ABYSSAL CALAMITY' : currentCombo >= 6 ? 'VAMPIRIC COMBO' : `COMBO x${currentCombo}`);
         setLastComboText(comboText);
       }
 
@@ -1250,10 +1283,30 @@ export const useMatch3 = () => {
 
     const isGameComplete = playerStats.level === 100;
 
+    let relicToLevelUp: Relic | null = null;
+    if (currentLevelNum >= 110 && currentLevelNum % 10 === 0) {
+      const evolutionIndex = (currentLevelNum / 10 - 11) % 10;
+      const relic = RELICS[evolutionIndex];
+      const currentLevel = (playerStats.relicLevels && playerStats.relicLevels[relic.id]) || 1;
+      const maxLevel = RELIC_MAX_LEVELS[relic.id] || 5;
+      
+      if (currentLevel < maxLevel) {
+        relicToLevelUp = relic;
+      }
+    }
+
     setPlayerStats(prev => {
       const nextUnlockedRelics = unlockedRelic ? [...prev.unlockedRelics, unlockedRelic.id] : prev.unlockedRelics;
       const nextEarnedRelics = unlockedRelic ? [...(prev.earnedRelics || []), unlockedRelic.id] : (prev.earnedRelics || []);
       
+      const nextRelicLevels = { ...(prev.relicLevels || {}) };
+      if (unlockedRelic && !nextRelicLevels[unlockedRelic.id]) {
+        nextRelicLevels[unlockedRelic.id] = 1;
+      }
+      if (relicToLevelUp) {
+        nextRelicLevels[relicToLevelUp.id] = (nextRelicLevels[relicToLevelUp.id] || 1) + 1;
+      }
+
       let rewardCoins = levelData.rewardCoins;
 
       if (isGameComplete) {
@@ -1266,13 +1319,19 @@ export const useMatch3 = () => {
         bloodCoins: prev.bloodCoins + rewardCoins,
         unlockedRelics: nextUnlockedRelics,
         earnedRelics: nextEarnedRelics,
+        relicLevels: nextRelicLevels,
         speedRunUnlocked: true
       };
     });
 
     if (unlockedRelic) {
       unlockAchievement(`relic_${unlockedRelic.id}`);
-      setNewRelicUnlocked(unlockedRelic);
+      setRelicNotification({ relic: unlockedRelic, level: 1 });
+    }
+
+    if (relicToLevelUp) {
+      const nextLevel = ((playerStats.relicLevels && playerStats.relicLevels[relicToLevelUp.id]) || 1) + 1;
+      setRelicNotification({ relic: relicToLevelUp, level: nextLevel });
     }
 
     return isGameComplete ? 'game_complete' : 'normal_win';
@@ -1306,8 +1365,8 @@ export const useMatch3 = () => {
     mistakeCount,
     lastComboText,
     isShaking,
-    newRelicUnlocked,
-    setNewRelicUnlocked,
+    newRelicUnlocked: relicNotification,
+    setNewRelicUnlocked: setRelicNotification,
     achievementNotification,
     powerUpNotification,
     hintPiece,

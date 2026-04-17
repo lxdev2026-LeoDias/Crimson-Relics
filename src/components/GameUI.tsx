@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Skull, Ghost, Droplet, Star, Coins, Target, ShoppingCart, X, FlaskConical, ArrowLeft, Flame, CupSoda, CircleDot, Shield, Book, Crown, Hourglass, Orbit, Sword, Lock, Heart, Trophy, Settings, Medal, ChevronLeft, ChevronRight, Zap, Check, Volume2, VolumeX, Timer, LogOut, Eye, Cloud } from 'lucide-react';
 import { LevelGoal, PlayerStats, PowerUpType, Relic, LocalizedString, Language, Achievement, SpeedRunRecord, ExportOptions } from '../types';
-import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE, RESOLUTIONS } from '../constants';
+import { PIECE_CONFIG, POWER_UPS, RELICS, LORE, ACHIEVEMENTS, FINAL_LORE, RESOLUTIONS, RELIC_MAX_LEVELS, RELIC_UPGRADE_INCREMENTS } from '../constants';
 import { audioService } from '../services/audioService';
 
 const RELIC_ICONS: Record<string, any> = {
@@ -34,31 +34,31 @@ const BloodSea = () => (
 
 const SeaOfBloodEnhanced = ({ isRising }: { isRising: boolean }) => {
   return (
-    <div className="absolute bottom-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+    <div className="absolute bottom-0 left-[-10%] w-[120%] h-full overflow-hidden pointer-events-none z-0">
       {/* Deep Blood Layer */}
       <motion.div 
         animate={{ 
           height: isRising ? '60%' : '25%',
           transition: { duration: 5, ease: "easeInOut" }
         }}
-        className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-red-950 via-red-900 to-red-800/40 backdrop-blur-sm"
+        className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-red-950 via-red-900 to-transparent backdrop-blur-sm"
       />
 
       {/* Wave 1 */}
       <motion.div
         animate={{ 
-          x: ["-25%", "0%"],
+          x: ["-50%", "0%"],
           y: [0, 15, 0],
           height: isRising ? '65%' : '32%'
         }}
         transition={{ 
-          x: { duration: 12, repeat: Infinity, ease: "linear" },
+          x: { duration: 20, repeat: Infinity, ease: "linear" },
           y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
           height: { duration: 5, ease: "easeInOut" }
         }}
         className="absolute bottom-0 left-0 w-[200%] opacity-60"
       >
-        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-900/80 filter drop-shadow-[0_0_20px_rgba(220,38,38,0.6)]">
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-red-900/80 filter drop-shadow-[0_0_20px_rgba(255,0,0,0.4)]">
           <path d="M0,60 C150,110 350,10 500,60 C650,110 850,10 1000,60 C1150,110 1350,10 1500,60 L1500,120 L0,120 Z" />
         </svg>
       </motion.div>
@@ -66,12 +66,12 @@ const SeaOfBloodEnhanced = ({ isRising }: { isRising: boolean }) => {
       {/* Wave 2 */}
       <motion.div
         animate={{ 
-          x: ["0%", "-25%"],
+          x: ["0%", "-50%"],
           y: [10, -10, 10],
           height: isRising ? '62%' : '29%'
         }}
         transition={{ 
-          x: { duration: 18, repeat: Infinity, ease: "linear" },
+          x: { duration: 25, repeat: Infinity, ease: "linear" },
           y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
           height: { duration: 5, ease: "easeInOut" }
         }}
@@ -81,6 +81,15 @@ const SeaOfBloodEnhanced = ({ isRising }: { isRising: boolean }) => {
           <path d="M0,80 C200,30 400,130 600,80 C800,30 1000,130 1200,80 L1200,120 L0,120 Z" />
         </svg>
       </motion.div>
+
+      {/* Straighter Base Layer for full width coverage */}
+      <motion.div
+        animate={{ 
+          height: isRising ? '55%' : '15%'
+        }}
+        transition={{ duration: 5 }}
+        className="absolute bottom-0 left-0 w-full bg-red-950/40 border-t border-red-500/20"
+      />
 
       {/* Rising Bubbles from Sea */}
       {[...Array(15)].map((_, i) => (
@@ -181,21 +190,18 @@ const AtmosphereLayers = () => (
       className="absolute top-1/2 left-0 w-full h-1/2 bg-gradient-to-r from-transparent via-red-900/5 to-transparent blur-3xl"
     />
 
-    {/* Ambient Lighting */}
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+    {/* Ambient Lighting - Subtler */}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_20%,rgba(0,0,0,0.2)_100%)]" />
   </div>
 );
 
 const GothicWalls = () => (
   <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-    {/* Left Wall */}
-    <div className="absolute left-0 top-0 h-full w-[20%] xl:w-[25%]">
-      <div className="absolute inset-0 bg-zinc-950 shadow-[inset_-20px_0_60px_rgba(0,0,0,1)]" />
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/brick-wall.png')] opacity-40 mix-blend-overlay" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
+    {/* Left Wall Elements - Transparent and subtle */}
+    <div className="absolute left-0 top-0 h-full w-[25%] opacity-30">
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
       
-      {/* Sinister Symbols */}
-      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-10">
+      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-20">
         <Skull size={80} className="text-red-900 blur-[1px]" />
         <div className="text-red-900 font-cinzel text-7xl rotate-90 tracking-[0.5em] select-none font-black">ᚱᚢᚾᛖᛋ</div>
         <Eye size={64} className="text-red-900 animate-pulse" />
@@ -210,14 +216,11 @@ const GothicWalls = () => (
       <div className="absolute top-1/4 left-1/2 w-[2px] h-40 bg-gradient-to-b from-red-900/0 via-red-600/20 to-red-900/0 blur-[1px] animate-pulse" />
     </div>
 
-    {/* Right Wall */}
-    <div className="absolute right-0 top-0 h-full w-[20%] xl:w-[25%]">
-      <div className="absolute inset-0 bg-zinc-950 shadow-[inset_20px_0_60px_rgba(0,0,0,1)]" />
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/brick-wall.png')] opacity-40 mix-blend-overlay" />
-      <div className="absolute inset-0 bg-gradient-to-l from-black via-transparent to-transparent" />
+    {/* Right Wall Elements - Transparent and subtle */}
+    <div className="absolute right-0 top-0 h-full w-[25%] opacity-30">
+      <div className="absolute inset-0 bg-gradient-to-l from-black/40 to-transparent" />
       
-      {/* Sinister Symbols */}
-      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-10">
+      <div className="absolute inset-0 flex flex-col items-center justify-around py-24 opacity-20">
         <Skull size={80} className="text-red-900 blur-[1px]" />
         <div className="text-red-900 font-cinzel text-7xl -rotate-90 tracking-[0.5em] select-none font-black">ᛞᚨᚱᚲ</div>
         <Eye size={64} className="text-red-900 animate-pulse" />
@@ -2006,7 +2009,7 @@ export const IntroScreen = ({
       }}
       onMouseMove={handleMouseMove}
       onClick={handleBackgroundClick}
-      className="relative flex flex-col items-center justify-center text-center min-h-screen w-full overflow-hidden cursor-crosshair"
+      className="relative flex flex-col items-center justify-center text-center h-screen w-screen overflow-hidden cursor-crosshair bg-black"
     >
       {/* Background Layers */}
       <AtmosphereLayers />
@@ -2573,14 +2576,139 @@ export const GameOverScreen = ({ onStart, score, language }: ScreenProps) => {
   );
 };
 
+const Candle = ({ className, glowSize }: { className?: string, glowSize?: string }) => (
+  <div className={`flex flex-col items-center pointer-events-none ${className}`}>
+    {/* Wall Sconce / Support - Integrated into wall */}
+    <div className="absolute w-12 h-4 bg-gradient-to-b from-[#1a1a1a] to-black rounded-full translate-y-24 shadow-2xl skew-x-12 ring-1 ring-white/5" />
+    
+    {/* Flickering Light Glow on nearby wall */}
+    <div 
+      className="absolute bg-orange-600/20 rounded-full -top-32 blur-3xl ambient-flicker" 
+      style={{ width: glowSize || '400px', height: glowSize || '400px' }}
+    />
+    
+    {/* Flame & Wick */}
+    <div className="relative mb-0.5 z-10">
+      <div className="candle-flame" />
+      <div className="candle-wick" />
+    </div>
+    
+    {/* Candle Body */}
+    <div className="w-5 h-28 candle-body-texture relative z-0" />
+    
+    {/* Base Shadow / Pooling Wax Shadow */}
+    <div className="w-12 h-3 bg-black/80 rounded-full blur-[3px] -mt-1.5" />
+  </div>
+);
+
+const TombBackground = () => (
+  <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-black">
+    {/* The Physical Chamber Walls with 3D perspective effect */}
+    <div 
+      className="absolute inset-0 tomb-wall-pattern opacity-90 transition-opacity"
+      style={{ perspective: '1000px' }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-60" />
+    </div>
+    
+    {/* Centered Deep Shadow (The Abyss) */}
+    <div className="absolute inset-x-0 top-0 bottom-0 bg-radial-[circle_at_center] from-transparent via-black/30 to-black/95 z-[1]" />
+
+    {/* Vignette - Looking deeply into the Tomb */}
+    <div className="absolute inset-0 stone-shadow z-[2]" />
+
+    {/* Imperfections: Cracks integrated into the stone bricks */}
+    {[...Array(8)].map((_, i) => (
+      <div 
+        key={`crack-${i}`}
+        className="stone-crack z-[1]"
+        style={{
+          left: `${Math.random() * 90 + 5}%`,
+          top: `${Math.random() * 90 + 5}%`,
+          width: `${30 + Math.random() * 120}px`,
+          transform: `rotate(${Math.random() * 180 - 90}deg)`,
+          opacity: 0.2 + Math.random() * 0.3
+        }}
+      />
+    ))}
+
+    {/* Ambient Light Pulses (Global) */}
+    <div className="absolute inset-0 bg-orange-950/5 ambient-flicker mix-blend-overlay z-[3]" />
+
+    {/* Dust Particles - Subtle and influenced by light */}
+    {[...Array(20)].map((_, i) => (
+      <div 
+        key={`dust-${i}`}
+        className="absolute w-1 h-1 bg-white/10 rounded-full z-[4] blur-[0.5px]"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          animation: `dust-float ${20 + Math.random() * 20}s linear infinite`,
+          animationDelay: `${Math.random() * 10}s`
+        }}
+      />
+    ))}
+
+    {/* Integrated Candles at different depths */}
+    <Candle className="absolute left-6 md:left-20 bottom-16 z-[5] scale-110" glowSize="500px" />
+    <Candle className="absolute right-6 md:right-24 bottom-32 z-[5] scale-125" glowSize="600px" />
+    <Candle className="absolute left-1/4 top-1/4 z-[4] scale-50 opacity-30 blur-[2px]" glowSize="300px" />
+    <Candle className="absolute right-1/4 top-1/3 z-[4] scale-40 opacity-20 blur-[3px]" glowSize="200px" />
+    
+    {/* Deep Room Fog & Ground Mist */}
+    <div className="absolute bottom-0 w-full h-[60%] tomb-fog z-[6] opacity-80" />
+    
+    {/* Center Glow (Where cards are) */}
+    <div className="absolute inset-0 bg-radial-[circle_at_center] from-white/5 to-transparent blur-3xl z-[0] opacity-30" />
+  </div>
+);
+
 export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, playerStats: PlayerStats }) => {
   const lang = playerStats.language;
   const [selectedRelic, setSelectedRelic] = useState<Relic | null>(null);
 
+  const getRelicBonusDescription = (relicId: string, level: number, lang: Language) => {
+    const relic = RELICS.find(r => r.id === relicId);
+    if (!relic) return '';
+    
+    const baseValue = relic.effect.value;
+    const increment = RELIC_UPGRADE_INCREMENTS[relicId] || 0;
+    const currentValue = baseValue + (level - 1) * increment;
+
+    switch (relicId) {
+      case 'chalice':
+        return lang === 'pt' ? `+${Math.round(currentValue * 100)}% de Pontuação Total` : `+${Math.round(currentValue * 100)}% Total Score`;
+      case 'ring':
+        return lang === 'pt' ? `+${currentValue} Movimentos Extras` : `+${currentValue} Extra Moves`;
+      case 'pendant':
+        return lang === 'pt' ? `${(2.0 + (level - 1) * 0.5).toFixed(1)}x + Pontos de Combo` : `${(2.0 + (level - 1) * 0.5).toFixed(1)}x + Combo Points`;
+      case 'grimoire':
+        return lang === 'pt' ? `-${Math.round(currentValue * 100)}% no preço dos itens da loja` : `-${Math.round(currentValue * 100)}% Shop Item Prices`;
+      case 'crown':
+        return lang === 'pt' ? `+${Math.round(currentValue * 100)}% de Pontos em Match 4 ou Superior` : `+${Math.round(currentValue * 100)}% Points on Match 4 or Higher`;
+      case 'hourglass':
+        return lang === 'pt' ? `+${currentValue} Movimentos Extras` : `+${currentValue} Extra Moves`;
+      case 'orb':
+        return lang === 'pt' ? `${Math.round(currentValue * 100)}% de chance de gerar peças especiais` : `${Math.round(currentValue * 100)}% Chance of special pieces`;
+      case 'dagger':
+        const pieces = level === 1 ? 1 : 1 + (level - 1) * 3;
+        return lang === 'pt' ? `Combinações limpam ${pieces} blocos extras` : `Matches clear ${pieces} extra tiles`;
+      case 'seal':
+        return lang === 'pt' ? `${Math.round(currentValue * 100)}% de chance de reações adicionais` : `${Math.round(currentValue * 100)}% Chance of additional reactions`;
+      case 'heart':
+        return lang === 'pt' ? `+${Math.round(currentValue * 100)}% de Bônus de Pontuação` : `+${Math.round(currentValue * 100)}% Score Bonus`;
+      default:
+        return t(relic.bonus, lang);
+    }
+  };
+
   return (
-    <div className="w-full max-w-6xl flex items-center justify-center min-h-[600px]">
-      <AnimatePresence mode="wait">
-        {!selectedRelic ? (
+    <div className="fixed inset-0 w-full min-h-screen bg-black overflow-hidden flex items-center justify-center p-4">
+      <TombBackground />
+      
+      <div className="relative z-10 w-full max-w-6xl flex items-center justify-center min-h-[600px]">
+        <AnimatePresence mode="wait">
+          {!selectedRelic ? (
           <motion.div 
             key="list"
             initial={{ opacity: 0, y: 20 }}
@@ -2608,6 +2736,9 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
               {RELICS.map((relic) => {
                 const isUnlocked = playerStats.unlockedRelics.includes(relic.id);
                 const Icon = RELIC_ICONS[relic.icon];
+                const currentLevel = (playerStats.relicLevels && playerStats.relicLevels[relic.id]) || 1;
+                const maxLevel = RELIC_MAX_LEVELS[relic.id] || 5;
+                const isMaxLevel = currentLevel >= maxLevel;
                 
                 return (
                   <motion.div 
@@ -2618,16 +2749,30 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
                     className={`
                       relative p-8 rounded-[2.5rem] border-2 flex flex-col items-center gap-5 transition-all cursor-pointer
                       ${isUnlocked 
-                        ? 'bg-red-950/40 border-red-600/50 shadow-[0_0_40px_rgba(220,38,38,0.2)]' 
+                        ? (isMaxLevel ? 'bg-amber-900/40 border-amber-500 shadow-[0_0_50px_rgba(234,179,8,0.4)]' : 'bg-red-950/40 border-red-600/50 shadow-[0_0_40px_rgba(220,38,38,0.2)]') 
                         : 'bg-zinc-900/20 border-zinc-800/40 opacity-30 grayscale'}
                     `}
                   >
-                    <div className={`p-5 rounded-full ${isUnlocked ? 'bg-red-600 shadow-[0_0_25px_rgba(220,38,38,0.5)] text-white' : 'bg-zinc-800 text-zinc-600'}`}>
+                    {isMaxLevel && (
+                      <motion.div 
+                        animate={{ opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute inset-0 rounded-[2.5rem] bg-yellow-500/10 blur-xl pointer-events-none" 
+                      />
+                    )}
+                    <div className={`p-5 rounded-full ${isUnlocked ? (isMaxLevel ? 'bg-amber-500 shadow-[0_0_30px_rgba(234,179,8,0.6)] text-black' : 'bg-red-600 shadow-[0_0_25px_rgba(220,38,38,0.5)] text-white') : 'bg-zinc-800 text-zinc-600'}`}>
                       <Icon size={40} />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-widest text-center leading-tight text-zinc-100">
-                      {t(relic.name, lang)}
-                    </span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-black uppercase tracking-widest text-center leading-tight text-zinc-100">
+                        {t(relic.name, lang)}
+                      </span>
+                      {isUnlocked && (
+                        <span className={`text-[10px] font-bold mt-2 px-3 py-1 rounded-full ${isMaxLevel ? 'bg-amber-500 text-black' : 'bg-red-900/40 text-red-100'}`}>
+                          {isMaxLevel ? 'MAX' : `LVL ${currentLevel}`}
+                        </span>
+                      )}
+                    </div>
                     {!isUnlocked && <Lock size={16} className="absolute top-4 right-4 text-zinc-600" />}
                   </motion.div>
                 );
@@ -2640,7 +2785,12 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="relic-modal-bg border-4 border-red-500/60 p-12 rounded-[3.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(220,38,38,0.6)]"
+            className={`
+              relic-modal-bg border-4 p-12 rounded-[3.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(220,38,38,0.6)]
+              ${((playerStats.relicLevels && playerStats.relicLevels[selectedRelic.id]) || 1) >= (RELIC_MAX_LEVELS[selectedRelic.id] || 5) 
+                ? 'border-amber-500 shadow-[0_0_120px_rgba(234,179,8,0.4)]' 
+                : 'border-red-500/60 shadow-[0_0_120px_rgba(220,38,38,0.6)]'}
+            `}
           >
             <button 
               onClick={() => setSelectedRelic(null)}
@@ -2650,13 +2800,19 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
             </button>
 
             <div className="flex flex-col items-center text-center">
-              <div className="p-12 bg-red-600 rounded-full text-white mb-10 shadow-[0_0_60px_rgba(220,38,38,0.8)] animate-pulse">
+              <div className={`p-12 rounded-full mb-10 shadow-[0_0_60px_rgba(220,38,38,0.8)] animate-pulse ${((playerStats.relicLevels && playerStats.relicLevels[selectedRelic.id]) || 1) >= (RELIC_MAX_LEVELS[selectedRelic.id] || 5) ? 'bg-amber-500 text-black shadow-[0_0_60px_rgba(234,179,8,0.6)]' : 'bg-red-600 text-white'}`}>
                 {(() => { const Icon = RELIC_ICONS[selectedRelic.icon]; return <Icon size={76} />; })()}
               </div>
               
-              <h3 className="text-lg uppercase tracking-[0.6em] text-red-400 font-black mb-4 drop-shadow-[0_0_12px_rgba(220,38,38,0.6)]">
-                {lang === 'pt' ? 'Relíquia Desbloqueada' : 'Relic Unlocked'}
-              </h3>
+              <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-lg uppercase tracking-[0.6em] text-red-400 font-black drop-shadow-[0_0_12px_rgba(220,38,38,0.6)]">
+                  {lang === 'pt' ? 'Relíquia Desbloqueada' : 'Relic Unlocked'}
+                </h3>
+                <span className={`text-sm font-black px-4 py-1.5 rounded-full ${((playerStats.relicLevels && playerStats.relicLevels[selectedRelic.id]) || 1) >= (RELIC_MAX_LEVELS[selectedRelic.id] || 5) ? 'bg-amber-500 text-black' : 'bg-red-600 text-white'}`}>
+                  {lang === 'pt' ? 'Nível' : 'Level'} {(playerStats.relicLevels && playerStats.relicLevels[selectedRelic.id]) || 1}
+                </span>
+              </div>
+              
               <h2 className="text-5xl font-black text-white uppercase tracking-tighter mb-8 drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
                 {t(selectedRelic.name, lang)}
               </h2>
@@ -2671,14 +2827,15 @@ export const RelicsScreen = ({ onStart, playerStats }: { onStart: () => void, pl
                 <span className="text-xs uppercase tracking-[0.5em] text-red-400 font-black mb-4 block">
                   {lang === 'pt' ? 'Bônus Ativo' : 'Active Bonus'}
                 </span>
-                <p className="text-4xl font-black text-white uppercase tracking-[0.1em] drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
-                  {t(selectedRelic.bonus, lang)}
+                <p className="text-2xl md:text-4xl font-black text-white uppercase tracking-[0.1em] drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
+                  {getRelicBonusDescription(selectedRelic.id, (playerStats.relicLevels && playerStats.relicLevels[selectedRelic.id]) || 1, lang)}
                 </p>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 };
@@ -2822,8 +2979,41 @@ export const ComboFeedback = ({ text, comboCount }: { text: string | null, combo
   );
 };
 
-export const RelicUnlockScreen = ({ relic, onStart, language }: { relic: Relic, onStart: () => void, language: Language }) => {
+export const RelicUnlockScreen = ({ relic, level, onStart, language }: { relic: Relic, level: number, onStart: () => void, language: Language }) => {
   const Icon = RELIC_ICONS[relic.icon];
+  const isEvolution = level > 1;
+
+  const getBonusText = () => {
+    const baseValue = relic.effect.value;
+    const increment = RELIC_UPGRADE_INCREMENTS[relic.id] || 0;
+    const currentValue = baseValue + (level - 1) * increment;
+
+    switch (relic.id) {
+      case 'chalice':
+        return language === 'pt' ? `+${Math.round(currentValue * 100)}% de Pontuação Total` : `+${Math.round(currentValue * 100)}% Total Score`;
+      case 'ring':
+        return language === 'pt' ? `+${currentValue} Movimentos Extras` : `+${currentValue} Extra Moves`;
+      case 'pendant':
+        return language === 'pt' ? `${(2.0 + (level - 1) * 0.5).toFixed(1)}x + Pontos de Combo` : `${(2.0 + (level - 1) * 0.5).toFixed(1)}x + Combo Points`;
+      case 'grimoire':
+        return language === 'pt' ? `-${Math.round(currentValue * 100)}% no preço dos itens da loja` : `-${Math.round(currentValue * 100)}% Shop Item Prices`;
+      case 'crown':
+        return language === 'pt' ? `+${Math.round(currentValue * 100)}% de Pontos em Match 4 ou Superior` : `+${Math.round(currentValue * 100)}% Points on Match 4 or Higher`;
+      case 'hourglass':
+        return language === 'pt' ? `+${currentValue} Movimentos Extras` : `+${currentValue} Extra Moves`;
+      case 'orb':
+        return language === 'pt' ? `${Math.round(currentValue * 100)}% de chance de gerar peças especiais` : `${Math.round(currentValue * 100)}% Chance of special pieces`;
+      case 'dagger':
+        const pieces = level === 1 ? 1 : 1 + (level - 1) * 3;
+        return language === 'pt' ? `Combinações limpam ${pieces} blocos extras` : `Matches clear ${pieces} extra tiles`;
+      case 'seal':
+        return language === 'pt' ? `${Math.round(currentValue * 100)}% de chance de reações adicionais` : `${Math.round(currentValue * 100)}% Chance of additional reactions`;
+      case 'heart':
+        return language === 'pt' ? `+${Math.round(currentValue * 100)}% de Bônus de Pontuação` : `+${Math.round(currentValue * 100)}% Score Bonus`;
+      default:
+        return t(relic.bonus, language);
+    }
+  };
   
   return (
     <motion.div 
@@ -2841,35 +3031,41 @@ export const RelicUnlockScreen = ({ relic, onStart, language }: { relic: Relic, 
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 bg-red-600/20 rounded-full blur-[60px]"
+            className={`absolute inset-0 ${isEvolution ? 'bg-amber-600/30' : 'bg-red-600/20'} rounded-full blur-[60px]`}
           />
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="relative p-6 bg-red-900 rounded-full border-4 border-red-500 shadow-[0_0_50px_rgba(220,38,38,0.5)] text-white"
+            className={`relative p-6 ${isEvolution ? 'bg-amber-600' : 'bg-red-900'} rounded-full border-4 ${isEvolution ? 'border-amber-400' : 'border-red-500'} shadow-[0_0_50px_rgba(220,38,38,0.5)] text-white`}
           >
-            <Icon size={80} />
+            <Icon size={80} className={isEvolution ? 'text-black' : 'text-white'} />
           </motion.div>
         </div>
 
-        <h3 className="text-red-600 uppercase tracking-[0.4em] text-xl font-bloody mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">
-          {language === 'pt' ? 'Relíquia Recuperada' : 'Relic Recovered'}
+        <h3 className={`uppercase tracking-[0.4em] text-xl font-bloody mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)] ${isEvolution ? 'text-amber-500' : 'text-red-600'}`}>
+          {isEvolution 
+            ? (language === 'pt' ? `Relíquia Evoluída (Nível ${level})` : `Relic Evolved (Level ${level})`)
+            : (language === 'pt' ? 'Relíquia Recuperada' : 'Relic Recovered')}
         </h3>
         <h2 className="text-5xl font-black text-white uppercase tracking-tighter mb-6">{t(relic.name, language)}</h2>
         
         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-8">
           <p className="text-gray-400 italic mb-4">"{t(relic.lore, language)}"</p>
-          <div className="h-[1px] w-12 bg-red-900 mx-auto mb-4" />
-          <p className="text-xl font-bold text-red-500 uppercase tracking-widest">{t(relic.bonus, language)}</p>
+          <div className={`h-[1px] w-12 mx-auto mb-4 ${isEvolution ? 'bg-amber-900' : 'bg-red-900'}`} />
+          <p className={`text-xl font-bold uppercase tracking-widest ${isEvolution ? 'text-amber-500' : 'text-red-500'}`}>
+            {getBonusText()}
+          </p>
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.05, backgroundColor: '#8b0000' }}
+          whileHover={{ scale: 1.05, backgroundColor: isEvolution ? '#92400e' : '#8b0000' }}
           whileTap={{ scale: 0.95 }}
           onClick={onStart}
-          className="px-12 py-4 bg-red-900 text-white font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest"
+          className={`px-12 py-4 ${isEvolution ? 'bg-amber-600 text-black' : 'bg-red-900 text-white'} font-bold text-xl rounded-full border-2 border-red-500/30 shadow-[0_0_30px_rgba(139,0,0,0.4)] transition-all duration-300 uppercase tracking-widest`}
         >
-          {language === 'pt' ? 'Reivindicar Poder' : 'Claim Power'}
+          {isEvolution 
+            ? (language === 'pt' ? 'Reivindicar Evolução' : 'Claim Evolution')
+            : (language === 'pt' ? 'Reivindicar Poder' : 'Claim Power')}
         </motion.button>
       </motion.div>
     </motion.div>

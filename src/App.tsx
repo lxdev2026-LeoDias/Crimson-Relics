@@ -188,7 +188,7 @@ export default function App() {
       {/* Scaling Container */}
       <div 
         className={`relative flex items-center justify-center transition-all duration-500 ease-out ${
-          gameState === 'playing' ? '' : 'w-full h-full'
+          gameState === 'playing' ? '' : 'fixed inset-0 w-screen h-screen z-0'
         }`}
         style={gameState === 'playing' ? { 
           width: '1920px', 
@@ -435,7 +435,8 @@ export default function App() {
 
         {newRelicUnlocked && (
           <RelicUnlockScreen 
-            relic={newRelicUnlocked} 
+            relic={newRelicUnlocked.relic} 
+            level={newRelicUnlocked.level}
             language={playerStats.language}
             onStart={() => {
               setNewRelicUnlocked(null);

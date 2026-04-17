@@ -1,6 +1,6 @@
 export type PieceType = 'blood' | 'skull' | 'bat' | 'gem' | 'candle' | 'fang';
 
-export type SpecialType = 'row' | 'column' | 'area' | 'color' | 'steps' | 'arrows' | 'chaos' | 'bomb' | 'soaked' | 'stained' | 'none';
+export type SpecialType = 'row' | 'column' | 'area' | 'color' | 'steps' | 'arrows' | 'chaos' | 'bomb' | 'soaked' | 'stained' | 'skull_red' | 'skull_blue' | 'skull_green' | 'skull_yellow' | 'skull_orange' | 'skull_silver' | 'none';
 
 export type Language = 'en' | 'pt';
 
@@ -77,6 +77,7 @@ export interface PlayerStats {
   sfxEnabled?: boolean;
   resolution?: string; // e.g., "1920x1080"
   fullscreen?: boolean;
+  relicLevels?: Record<string, number>;
 }
 
 export interface Achievement {

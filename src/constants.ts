@@ -58,30 +58,56 @@ export const LORE = {
   }
 };
 
+export const RELIC_MAX_LEVELS: Record<string, number> = {
+  chalice: 5,
+  ring: 5,
+  pendant: 5,
+  grimoire: 5,
+  crown: 5,
+  hourglass: 5,
+  orb: 5,
+  dagger: 5,
+  seal: 3,
+  heart: 5
+};
+
+export const RELIC_UPGRADE_INCREMENTS: Record<string, number> = {
+  chalice: 0.10,
+  ring: 1,
+  pendant: 0.5,
+  grimoire: 0.05,
+  crown: 0.05,
+  hourglass: 1,
+  orb: 0.04,
+  dagger: 3, // +5% of 64 board ~ 3 pieces
+  seal: 0.05,
+  heart: 0.05
+};
+
 export const RELICS: Relic[] = [
   {
     id: 'chalice',
     name: { en: 'Chalice of Eternal Blood', pt: 'Cálice de Sangue Eterno' },
     lore: { en: 'A golden cup that never empties, used in the first rituals.', pt: 'Uma taça de ouro que nunca esvazia, usada nos primeiros rituais.' },
-    bonus: { en: '+10% Total Score', pt: '+10% de Pontuação Total' },
+    bonus: { en: '+15% Total Score', pt: '+15% de Pontuação Total' },
     icon: 'CupSoda',
-    effect: { type: 'score_boost', value: 0.1 }
+    effect: { type: 'score_boost', value: 0.15 }
   },
   {
     id: 'ring',
     name: { en: 'Ring of the Dark Count', pt: 'Anel do Conde das Trevas' },
     lore: { en: 'A signet ring that grants authority over the night.', pt: 'Um anel de sinete que concede autoridade sobre a noite.' },
-    bonus: { en: '+1 Move per Level', pt: '+1 Movimento por Nível' },
+    bonus: { en: '+2 moves extra', pt: '2 movimentos extras' },
     icon: 'CircleDot',
-    effect: { type: 'extra_moves', value: 1 }
+    effect: { type: 'extra_moves', value: 2 }
   },
   {
     id: 'pendant',
     name: { en: 'Pendant of the Night Veil', pt: 'Pingente do Véu da Noite' },
     lore: { en: 'Hides the wearer from the eyes of destiny.', pt: 'Esconde o usuário dos olhos do destino.' },
-    bonus: { en: '1.5x more combo points', pt: '1.5x mais pontos de combo' },
+    bonus: { en: '2.0x more combo points', pt: '2.0x mais pontos de combo' },
     icon: 'Shield',
-    effect: { type: 'combo_points_boost', value: 0.5 }
+    effect: { type: 'combo_points_boost', value: 1.0 }
   },
   {
     id: 'grimoire',
@@ -95,29 +121,29 @@ export const RELICS: Relic[] = [
     id: 'crown',
     name: { en: 'Crown of Eternal Dominion', pt: 'Coroa do Domínio Eterno' },
     lore: { en: 'The crown of the first vampire king.', pt: 'A coroa do primeiro rei vampiro.' },
-    bonus: { en: '+15% Bonus score on Match 4+', pt: '+15% de Pontuação bônus em Match 4+' },
+    bonus: { en: '+20% Bonus score on Match 4+', pt: '+20% de Pontos em Match 4 ou Superior' },
     icon: 'Crown',
-    effect: { type: 'match4_boost', value: 0.15 }
+    effect: { type: 'match4_boost', value: 0.20 }
   },
   {
     id: 'hourglass',
     name: { en: 'Hourglass of Immortality', pt: 'Ampulheta da Imortalidade' },
     lore: { en: 'The sand inside is ground bone of ancient saints.', pt: 'A areia interna é osso moído de santos antigos.' },
-    bonus: { en: '+2 Extra Moves per Level', pt: '+2 Movimentos Extras por Nível' },
+    bonus: { en: '+3 Extra Moves per Level', pt: '+3 Movimentos Extras' },
     icon: 'Hourglass',
-    effect: { type: 'extra_moves', value: 2 }
+    effect: { type: 'extra_moves', value: 3 }
   },
   {
     id: 'orb',
     name: { en: 'Crimson Orb', pt: 'Orbe Carmesim' },
     lore: { en: 'A pulsating eye that sees all possible futures.', pt: 'Um olho pulsante que vê todos os futuros possíveis.' },
-    bonus: { en: '5% Chance to spawn special pieces randomly', pt: '5% de Chance de gerar peças especiais aleatoriamente' },
+    bonus: { en: '6% Chance to spawn special pieces randomly', pt: '6% de chance de gerar peças especiais aleatoriamente' },
     icon: 'Orbit',
-    effect: { type: 'special_spawn', value: 0.05 }
+    effect: { type: 'special_spawn', value: 0.06 }
   },
   {
     id: 'dagger',
-    name: { en: 'Ritual Dagger', pt: 'Adaga de Ritual' },
+    name: { en: 'Ritualistic Dagger', pt: 'Adaga Ritualística' },
     lore: { en: 'A blade that thirsts for the essence of life.', pt: 'Uma lâmina que tem sede da essência da vida.' },
     bonus: { en: 'Matches clear extra tiles', pt: 'Combinações limpam blocos extras' },
     icon: 'Sword',
@@ -127,17 +153,17 @@ export const RELICS: Relic[] = [
     id: 'seal',
     name: { en: 'Arcane Blood Seal', pt: 'Selo de Sangue Arcano' },
     lore: { en: 'A seal that binds the blood of the fallen.', pt: 'Um selo que vincula o sangue dos caídos.' },
-    bonus: { en: '10% Chance to trigger additional chain reactions', pt: '10% de Chance de desencadear reações em cadeia adicionais' },
+    bonus: { en: '15% Chance to trigger additional chain reactions', pt: '15% de chance de reações adicionais' },
     icon: 'Lock',
-    effect: { type: 'chain_reaction', value: 0.1 }
+    effect: { type: 'chain_reaction', value: 0.15 }
   },
   {
     id: 'heart',
     name: { en: 'Heart of Dark Crystal', pt: 'Coração de Cristal Negro' },
     lore: { en: 'The crystallized remains of Dracula’s original heart.', pt: 'Os restos cristalizados do coração original de Drácula.' },
-    bonus: { en: 'Massive score boost (+25%)', pt: 'Aumento massivo de pontuação (+25%)' },
+    bonus: { en: '+30% Score Bonus', pt: '+30% de Bônus de Pontuação' },
     icon: 'Heart',
-    effect: { type: 'score_boost', value: 0.25 }
+    effect: { type: 'score_boost', value: 0.30 }
   }
 ];
 
@@ -194,7 +220,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'relic_dagger',
     name: { en: 'Thirst for Essence', pt: 'Sede de Essência' },
-    description: { en: 'Recover the Ritual Dagger', pt: 'Recupere a Adaga de Ritual' },
+    description: { en: 'Recover the Ritualistic Dagger', pt: 'Recupere a Adaga Ritualística' },
     title: { en: 'Surgeon of the Sanguine Soul', pt: 'Cirurgião da Alma Sanguínea' },
     icon: 'Sword'
   },
@@ -288,6 +314,34 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: { en: 'Reach 500,000 points in a single Ritual', pt: 'Alcance 500.000 pontos em um único Ritual' },
     title: { en: 'The Absolute Essence', pt: 'A Essência Absoluta' },
     icon: 'Crown'
+  },
+  {
+    id: 'score_750k',
+    name: { en: 'Ocean of Red', pt: 'Oceano Vermelho' },
+    description: { en: 'Reach 750,000 points in a single Ritual', pt: 'Alcance 750.000 pontos em um único Ritual' },
+    title: { en: 'Tide-Bringer of Blood', pt: 'Trazedor da Maré de Sangue' },
+    icon: 'Medal'
+  },
+  {
+    id: 'score_1m',
+    name: { en: 'Devourer of Realities', pt: 'Devorador de Realidades' },
+    description: { en: 'Reach 1,000,000 points in a single Ritual', pt: 'Alcance 1.000.000 pontos em um único Ritual' },
+    title: { en: 'Prophet of the Sanguine End', pt: 'Profeta do Fim Sanguíneo' },
+    icon: 'Trophy'
+  },
+  {
+    id: 'combo_x15',
+    name: { en: 'Violent Symphony', pt: 'Sinfonia Violenta' },
+    description: { en: 'Reach a Combo x15 or more', pt: 'Alcance um Combo x15 ou mais' },
+    title: { en: 'Maestro of Massacre', pt: 'Maestro do Massacre' },
+    icon: 'Trophy'
+  },
+  {
+    id: 'combo_x20',
+    name: { en: 'Apotheosis of the Void', pt: 'Apoteose do Vazio' },
+    description: { en: 'Reach a Combo x20 or more', pt: 'Alcance um Combo x20 ou mais' },
+    title: { en: 'God-King of Chains', pt: 'Rei-Deus das Correntes' },
+    icon: 'Zap'
   },
   {
     id: 'speedrun_10min',
